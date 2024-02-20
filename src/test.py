@@ -1,9 +1,7 @@
-import numpy as np
 import matplotlib.pyplot as plt
 
-
 # setting the axes projection as polar
-plt.axes(projection = 'polar')
+plt.axes(projection='polar')
 
 # setting the radius
 r = 2

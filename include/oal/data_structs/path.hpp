@@ -10,7 +10,7 @@
 //#include "oal/data_structs/obstacle.hpp"
 #include "oal/data_structs/node.hpp"
 
-struct Metrics{
+struct Metrics {
     //double heading = 0; //used only for first node to compute heading changes
     double maxHeadingChange = 0;  // this should not start from zero if initial OS heading is known
     double totHeadingChange = 0;  // this should not start from zero if initial OS heading is known
@@ -26,50 +26,54 @@ struct Path {
 
     bool debug_flag = false;
 
-    [[nodiscard]] size_t size() const{
+    [[nodiscard]] size_t size() const {
       return waypoints.size();
     }
 
-    [[nodiscard]] bool empty() const{
+    [[nodiscard]] bool empty() const {
       return waypoints.empty();
     }
 
-    Node top(){
+    Node top() {
       return waypoints.top();
     }
 
-    void pop(){
+    void pop() {
       // When reached a node, delete it from Path and set the obstacle as overtaken to avoid future crossing
       Node nd = waypoints.top();
-      if(nd.obs_ptr != nullptr){
+      if (nd.obs_ptr != nullptr) {
         auto pos = std::find(overtakingObsList.begin(), overtakingObsList.end(), nd.obs_ptr->id);
-        if (pos != overtakingObsList.end())  overtakenObsList.push_back(nd.obs_ptr->id);
+        if (pos != overtakingObsList.end()) overtakenObsList.push_back(nd.obs_ptr->id);
       }
       waypoints.pop();
     }
 
-    void UpdateMetrics(const Eigen::Vector2d& vh_pos, double starting_heading, double rot_speed){
+    void UpdateMetrics(const Eigen::Vector2d &vh_pos, double starting_heading, double rot_speed) {
       // DO NOT REMOVE STARTING WAYPOINT FROM this PATH
       // TODO if I only use start heading here and not for path computing, maybe unnecessary in node def
       Path temp = *this;
       temp.pop(); // removing path starting point
       Eigen::Vector2d vh_to_first = temp.top().position - vh_pos;
       double dist = vh_to_first.norm();
-      // TODO check starting heading is proper
-      double course_change = abs(starting_heading- std::acos(vh_to_first.normalized().dot(Eigen::Vector2d(1,0))));
+
+      Eigen::Rotation2D<double> rotation(starting_heading);
+      Eigen::Vector2d headVector = rotation * Eigen::Vector2d::UnitX();
+      double course_change = abs(std::atan2(headVector.y(), headVector.x()) - std::atan2(vh_to_first.y(), vh_to_first.x()));
+      if(course_change>M_PI) course_change = abs(course_change - 2*M_PI);
+
       double max_course_change = course_change;
       double est_time = dist / temp.top().speed_to_it;
-      if(rot_speed != 0){
+      if (rot_speed != 0) {
         est_time += course_change / rot_speed;
       }
       temp.pop();
-      while(!temp.empty()){
+      while (!temp.empty()) {
         Node next = temp.top();
         dist += next.distFromParent;
         course_change += next.courseChangeFromParent;
         max_course_change = std::max(max_course_change, next.courseChangeFromParent);
         est_time = next.distFromParent / temp.top().speed_to_it;
-        if(rot_speed != 0){
+        if (rot_speed != 0) {
           est_time += next.courseChangeFromParent / rot_speed;
         }
         temp.pop();
@@ -80,22 +84,22 @@ struct Path {
       metrics.estimatedTime = est_time;
     }
 
-    void print(bool local_wp = false){
-      std::cout<<"Path:\n"
-               <<" Length: "<<metrics.totDistance<<" meters\n"
-               <<" Total course change: "<<metrics.totHeadingChange<<" radians\n"
-               <<" Max course change: "<<metrics.maxHeadingChange<<" radians"<<std::endl;
+    void print(bool local_wp = false) {
+      std::cout << "Path:\n"
+                << " Length: " << metrics.totDistance << " meters\n"
+                << " Total course change: " << metrics.totHeadingChange << " radians\n"
+                << " Max course change: " << metrics.maxHeadingChange << " radians" << std::endl;
 
-      if(local_wp){
+      if (local_wp) {
         Path temp = *this;
-        std::cout<<" Waypoint list:"<<std::endl;
+        std::cout << " Waypoint list:" << std::endl;
 
-        while(!temp.empty()){
+        while (!temp.empty()) {
           auto node = temp.top();
           std::cout << "   - time: " << temp.top().time << "  Pos: " << node.position.x() << " " << node.position.y();
           //std::cout << temp.top().time << std::setw(5) << node.position.x() << std::setw(5) << node.position.y() << std::setw(5);
-          if(node.obs_ptr != nullptr){
-            switch (node.vx){
+          if (node.obs_ptr != nullptr) {
+            switch (node.vx) {
               case 0:
                 std::cout << "   Obs: " << node.obs_ptr->id << "/FR reaching speed: " << node.speed_to_it;
                 //std::cout << node.obs_ptr->id << std::setw(4) << "FR" << std::setw(4) << node.speed_to_it;
@@ -117,7 +121,7 @@ struct Path {
                 //std::cout << node.obs_ptr->id << std::setw(4) << "within" << std::setw(4) << node.speed_to_it;
                 break;
               default:
-                std::cout << " <Obs has undefined vx ?!?!> "<<std::endl;
+                std::cout << " <Obs has undefined vx ?!?!> " << std::endl;
             }
           }
           std::cout << std::endl;

@@ -21,11 +21,13 @@ struct Vertex {
     bool isVisible = false; //visibility from own ship
     TPoint intercept_point;
     double intercept_speed = 0;
+
     /*Eigen::Vector2d ip_position;  //intercept point position (absolute)
     double ip_time = -1; //intercept time*/
 
     Vertex() = default;
-    Vertex(vx_id id, Eigen::Vector2d pos) : id(id), position(std::move(pos)){}
+
+    Vertex(vx_id id, Eigen::Vector2d pos) : id(id), position(std::move(pos)) {}
 
 };
 

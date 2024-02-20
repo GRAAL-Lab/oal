@@ -12,7 +12,7 @@ Eigen::Vector2d ComputePosition(T &element, double time) {
 }
 
 template<typename T>
-Eigen::Vector3d Get3dPos(T &element){
+Eigen::Vector3d Get3dPos(T &element) {
   return {element.position.x(), element.position.y(), 0};
 }
 

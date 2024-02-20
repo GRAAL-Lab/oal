@@ -7,12 +7,12 @@ void Node::UpdateCosts(const Eigen::Vector2d &goal, double highest_speed, double
   costToGoal = dist_to_goal.norm() / highest_speed;
 
   double rotation_wasted_time = 0;
-  if(rot_speed>0){
+  if (rot_speed > 0) {
     // The time contribution of a node is also:
     //    - how much it takes to change course to reach this node
     //    - how much it takes to change course to reach goal from this node
     Eigen::Vector2d t1 = goal - position;
-    rotation_wasted_time = (GetHeadingChange() + std::acos(t1.normalized().dot(Eigen::Vector2d(1,0)))) / rot_speed;
+    rotation_wasted_time = (GetHeadingChange() + std::acos(t1.normalized().dot(Eigen::Vector2d(1, 0)))) / rot_speed;
   }
 
   costTotal = costToReach + costToGoal + rotation_wasted_time;
@@ -52,7 +52,7 @@ void Node::FindVisibilityVxs(Obstacle target_obs, std::vector<Vertex> &vxs_abs) 
     // Ownship on a bb
     if (obs_ptr->id == target_obs.id) {
       // Ownship already on the target bb
-      if (vx == NA){
+      if (vx == NA) {
         // OS in TS bb, visible are the exit ones
         std::vector<vx_id> allowedVxs;
         FindExitVxs(allowedVxs);

@@ -159,20 +159,21 @@ for timestamp in timeinstants:
         poly = Polygon(sorted_points, facecolor='None', edgecolor='g')
         ax.add_patch(poly)
 
-        plt.arrow(centroid_x, centroid_y, dim_x*0.15 * math.cos(heading), dim_x*0.15 * math.sin(heading),
-                  width=dim_y*0.05,
+        plt.arrow(centroid_x, centroid_y, dim_x * 0.15 * math.cos(heading), dim_x * 0.15 * math.sin(heading),
+                  width=dim_y * 0.05,
                   head_width=dim_y * 0.3,
                   head_length=dim_y * 0.2, color='blue')
 
-        plt.arrow(centroid_x, centroid_y, dim_x*0.15 * math.cos(vel_dir), dim_x*0.15 * math.sin(vel_dir),
-                  width=dim_y*0.05,
+        plt.arrow(centroid_x, centroid_y, dim_x * 0.15 * math.cos(vel_dir), dim_x * 0.15 * math.sin(vel_dir),
+                  width=dim_y * 0.05,
                   head_width=dim_y * 0.3,
                   head_length=dim_y * 0.2, color='red')
 
-        ax.text(centroid_x - dim_y*1.3* math.sin(heading), centroid_y + dim_y*1.3* math.cos(heading), polygon_data['obs'], ha='center', va='center', fontsize=10)
+        ax.text(centroid_x - dim_y * 1.3 * math.sin(heading), centroid_y + dim_y * 1.3 * math.cos(heading),
+                polygon_data['obs'], ha='center', va='center', fontsize=10)
         ax.axis('equal')
         # ax.axis('square')
-        #ax.set_xlim(8, 12)
+        # ax.set_xlim(8, 12)
         ax.set_aspect('equal')
 
 plt.show()

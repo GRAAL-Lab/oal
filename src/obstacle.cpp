@@ -32,7 +32,7 @@ void Obstacle::SetSize(double dist_x, double dist_y, double theta,
   }
 
   bool x_safety = (dist_x <= bb.dim_x / 2 * bb_ratio_x_safety);
-  bool y_safety = (dist_y <= bb.dim_y / 2 *bb_ratio_y_safety);
+  bool y_safety = (dist_y <= bb.dim_y / 2 * bb_ratio_y_safety);
   bool x_max = (dist_x >= bb.dim_x / 2 * bb_ratio_x);
   bool y_max = (dist_y >= bb.dim_y / 2 * bb_ratio_y);
   bool x_between = !x_safety && !x_max;
@@ -45,7 +45,7 @@ void Obstacle::SetSize(double dist_x, double dist_y, double theta,
     bb_dim_x = bb.dim_x / 2 * bb_ratio_x_safety;
   }
   if (y_safety && !x_max) {
-    bb_dim_y = bb.dim_y / 2* bb_ratio_y_safety;
+    bb_dim_y = bb.dim_y / 2 * bb_ratio_y_safety;
   }
 
   if (y_between && !x_max) {
@@ -62,11 +62,11 @@ void Obstacle::SetSize(double dist_x, double dist_y, double theta,
   }
   if (isStarboard) {
     dim_y_starboard = bb_dim_y;
-  }else{
+  } else {
     dim_y_port = bb_dim_y;
   }
 
-  if(!uncertainty){
+  if (!uncertainty) {
     dim_x_stern -= bb.gap;
     dim_x_bow -= bb.gap;
     dim_y_port -= bb.gap;
@@ -92,7 +92,7 @@ void Obstacle::FindLocalVxs(const Eigen::Vector2d &vhPos) {
   double dist_x = abs(bodyObs_vhPos.x());
   double dist_y = abs(bodyObs_vhPos.y());
   double theta = atan2(bodyObs_vhPos.y(), bodyObs_vhPos.x()); // error for (0,0)
-  double  bb_dim_x_bow, bb_dim_x_stern, bb_dim_y_starboard, bb_dim_y_port ;
+  double bb_dim_x_bow, bb_dim_x_stern, bb_dim_y_starboard, bb_dim_y_port;
   // asymmetric bb x dimension computation
   SetSize(dist_x, dist_y, theta, bb_dim_x_bow, bb_dim_x_stern, bb_dim_y_starboard, bb_dim_y_port);
   // Find the local vertexes position
@@ -132,8 +132,10 @@ std::string Obstacle::plotStuff(double time) {
   stream << "Vel_" << vel_dir << std::endl;
   stream << "Dimx_" << bb.dim_x << std::endl;
   stream << "Dimy_" << bb.dim_y << std::endl;
-  stream << "Safety_" << bb.safety_x_bow << "_" << bb.safety_x_stern << "_" << bb.safety_y_starboard<< "_" <<bb.safety_y_port<< std::endl;
-  stream << "Max_" << bb.max_x_bow << "_" << bb.max_x_stern << "_" << bb.max_y_starboard<< "_" <<bb.max_y_port<< std::endl;
+  stream << "Safety_" << bb.safety_x_bow << "_" << bb.safety_x_stern << "_" << bb.safety_y_starboard << "_"
+         << bb.safety_y_port << std::endl;
+  stream << "Max_" << bb.max_x_bow << "_" << bb.max_x_stern << "_" << bb.max_y_starboard << "_" << bb.max_y_port
+         << std::endl;
   std::vector<Vertex> vxs_abs;
   FindAbsVxs(time, vxs_abs);
   for (Vertex &vx: vxs_abs) {

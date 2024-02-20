@@ -15,7 +15,7 @@ int main(int, char **) {
   double count = 0;
   while (count < 10000) {
     count++;
-    std::cout << "----------------------------------------\n STARTING NEW PLAN " << count<< std::endl;
+    std::cout << "----------------------------------------\n STARTING NEW PLAN " << count << std::endl;
 
     VehicleInfo v_info;
     Eigen::Vector2d goal;
@@ -33,7 +33,7 @@ int main(int, char **) {
 
     // Random generation
     double n_obs = 10;
-    double area_size= 500;
+    double area_size = 500;
 
     v_info.velocities = generateRange(0.5, 1.5, 0.1);
     // Keep constants
@@ -50,7 +50,7 @@ int main(int, char **) {
     switch (scenario) {
 
       // testing weird scenarios from ulisse simulations
-      case 666:{
+      case 666: {
 
         colregs = 0;
         v_info.position = {0.907, -2.01};
@@ -80,7 +80,7 @@ int main(int, char **) {
         break;
 
       }
-      case 22:{
+      case 22: {
         //Overtaking and crossing situation on the high seas
         // https://www.advanced.ecolregs.com/index.php?option=com_k2&view=item&id=367:overtaking-and-crossing-situation-on-the-high-seas&Itemid=359&lang=en
         v_info.position = {10, 0};
@@ -91,7 +91,7 @@ int main(int, char **) {
         goal = {10, 50};
         break;
       }
-      case 23:{
+      case 23: {
         //Overtaking and head-on situation on the high seas
         // https://www.advanced.ecolregs.com/index.php?option=com_k2&view=item&id=370:overtaking-and-head-on-situation-on-the-high-seas&Itemid=359&lang=en
         v_info.position = {10, 0};
@@ -102,7 +102,7 @@ int main(int, char **) {
         goal = {10, 20};
         break;
       }
-      case 24:{
+      case 24: {
         //
         v_info.position = {10, 0};
         Obstacle obsB("B", {-5, 15}, 0, 1, 0, bb_dimension);
@@ -117,13 +117,14 @@ int main(int, char **) {
         std::random_device r;
         // Choose a random mean between 1 and 6
         std::default_random_engine e1(r());
-        std::uniform_real_distribution<double> pos_gen(-area_size/2, area_size/2);
+        std::uniform_real_distribution<double> pos_gen(-area_size / 2, area_size / 2);
         std::uniform_real_distribution<double> speed_gen(0, 2);
         std::uniform_real_distribution<double> heading_gen(-M_PI, M_PI);
-        std::uniform_real_distribution<double> vel_dir_gen(-M_PI/8, M_PI/8);
+        std::uniform_real_distribution<double> vel_dir_gen(-M_PI / 8, M_PI / 8);
         for (auto i = 0; i < n_obs; i++) {
           double heading = heading_gen(e1);
-          Obstacle obs(std::to_string(i+1), {pos_gen(e1), pos_gen(e1)}, heading, speed_gen(e1), heading+vel_dir_gen(e1), bb_dimension);
+          Obstacle obs(std::to_string(i + 1), {pos_gen(e1), pos_gen(e1)}, heading, speed_gen(e1),
+                       heading + vel_dir_gen(e1), bb_dimension);
           obs.print();
           obstacles.push_back(obs);
         }
@@ -139,7 +140,7 @@ int main(int, char **) {
       }
       case 3: {// TS crossing from right
         v_info.position = {10, 0};
-        Obstacle obs("1", {24.4009, 10}, M_PI*6/7, 0.5, M_PI*6/7, bb_dimension);
+        Obstacle obs("1", {24.4009, 10}, M_PI * 6 / 7, 0.5, M_PI * 6 / 7, bb_dimension);
         obstacles.push_back(obs);
         goal = {10, 20};
         break;
@@ -218,19 +219,19 @@ int main(int, char **) {
     }*/
 
     Path path2;
-    std::cout << std::endl << "Colregs: "<<colregs<< std::endl;
+    std::cout << std::endl << "Colregs: " << colregs << std::endl;
     if (planner2.ComputePath(goal, colregs, path2)) {
       planner2.print(goal);
-      std::cout<<" planner done"<<std::endl;
-      path2.UpdateMetrics(v_info.position,0, v_info.rot_speed);
+      std::cout << " planner done" << std::endl;
+      path2.UpdateMetrics(v_info.position, 0, v_info.rot_speed);
       path2.print();
-      if (path2.debug_flag){
+      if (path2.debug_flag) {
         break;
       }
       v_info.position.x() += 1;
       v_info.position.y() += -1;
       if (planner1.CheckPath(v_info.position, path2)) {
-        std::cout << "Checked!!" <<std::endl;
+        std::cout << "Checked!!" << std::endl;
       }
     } else {
       std::cout << std::endl << "Not found." << std::endl;
@@ -256,8 +257,6 @@ int main(int, char **) {
 
 
   }
-
-
 
 
 }

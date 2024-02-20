@@ -1,9 +1,9 @@
+from math import *
+from random import random
+
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy import linalg as LA
-from math import *
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from random import random
 from scipy.signal import argrelextrema
 
 OBS_TIME = 40
@@ -44,7 +44,8 @@ def main():
 
     ax = SetUpPlot(Origin, OS_Speed, Direction, fig, ax)
     # Print data
-    print("\nTS \n Origin: ", Origin[0], " ", Origin[1], "\n Heading: ", Heading, "/", round(Heading/pi*180,2), "\n Speed: ", Speed)
+    print("\nTS \n Origin: ", Origin[0], " ", Origin[1], "\n Heading: ", Heading, "/", round(Heading / pi * 180, 2),
+          "\n Speed: ", Speed)
     print("OS \n Speed: ", OS_Speed, '\n')
 
     print("\nNew method results")
@@ -52,7 +53,7 @@ def main():
     count = 0
     for point in points:
         ax = PlotPath(ax, np.array([0, 0, 0]), point[1], count + 1)
-        #print(atan2(point[1][1],point[1][0]))
+        # print(atan2(point[1][1],point[1][0]))
         print_pos(point, OS_Speed, Direction, Origin, False)
         count = count + 1
     poss = np.array([p[1] for p in points])
@@ -75,9 +76,9 @@ def main():
     for theta in thetas_min_dists:
         t = Origin[0] / (OS_Speed * cos(theta) - Speed * cos(Heading))
         p = Origin + t * Direction
-        #if t<0:
-            #print(" atan2 _ ", pi+atan2(p[1], p[0]) % 2*pi)
-            # print(" acos _ ", acos((Origin[0]+Speed*cos(Heading))/(OS_Speed*t)))
+        # if t<0:
+        # print(" atan2 _ ", pi+atan2(p[1], p[0]) % 2*pi)
+        # print(" acos _ ", acos((Origin[0]+Speed*cos(Heading))/(OS_Speed*t)))
         point = [t, p, theta]
         print_pos(point, OS_Speed, Direction, Origin, True)
 
@@ -117,6 +118,7 @@ def print_pos(point, OS_Speed, Direction, Origin, booool):
     else:
         print("     Time: ", round(t, 2), " theta: ", round(theta, 2), " (",
               p[0], ",", p[1], ")")
+
 
 def distance_t(t, OS_Speed, theta, Direction, Origin):
     p_OS = t * np.array([OS_Speed * cos(theta), OS_Speed * sin(theta), 1])
@@ -215,7 +217,7 @@ def SetUpPlot(TS, speed, vel_vect, fig, ax):
 def PlotPath(ax, p1, p2, name):
     line_x, line_y, line_z = zip(p1, p2)
     ax.plot(line_x, line_y, line_z, label=name)
-    ax.scatter(p2[0],p2[1],p2[2])
+    ax.scatter(p2[0], p2[1], p2[2])
     return ax
 
 

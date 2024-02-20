@@ -4,7 +4,8 @@ The library computes a colregs-compliant trajectory to a goal, avoiding static a
 
 ## News
 
-- Every reachable node is expanded with a set of (given) different velocities: the result is a trajectory with mixed velocities (sometimes slower gets to the goal sooner)
+- Every reachable node is expanded with a set of (given) different velocities: the result is a trajectory with mixed
+  velocities (sometimes slower gets to the goal sooner)
 - ..
 
 ## Main files (not up to date)
@@ -36,14 +37,11 @@ The library computes a colregs-compliant trajectory to a goal, avoiding static a
 
 ## Plots
 
-
-
 In order to check the correctness of the CheckCollision function, I wrote a script to visualize the bounding boxes and
 the vehicle path. Here an example:
 ![Figure_1](https://github.com/SamueleD98/oal/assets/28822110/34b667d5-8ca8-4d2a-bca5-49d13a8e3098)
 
 ## Notes
-
 
 For now, I'm keeping obstacle attributes as public since I need them to be easily accessible for the plots. In the final
 version, I will set them as private.
