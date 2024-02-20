@@ -12,16 +12,15 @@ std::vector<double> generateRange(double start, double end, double step) {
 }
 
 int main(int, char **) {
-  int scenario = 1;
   double count = 0;
-  while (scenario == 1 && count < 10000) {
+  while (count < 10000) {
     count++;
-
     std::cout << "----------------------------------------\n STARTING NEW PLAN " << count<< std::endl;
 
     VehicleInfo v_info;
     Eigen::Vector2d goal;
     std::vector<Obstacle> obstacles;
+    bool colregs;
 
     bb_data bb_dimension(20, 5,
                          1.6, 1.4,
@@ -29,28 +28,28 @@ int main(int, char **) {
                          1.5, 1.2,
                          1.5, 1.5,
                          0);
-    //std::cout << "Which scenario?" << std::endl;
-    //std::cin  >>  scenario;
 
-    scenario = 666;
+    int scenario = 666;
 
+    // Random generation
     double n_obs = 10;
     double area_size= 500;
+
     v_info.velocities = generateRange(0.5, 1.5, 0.1);
     // Keep constants
     v_info.position = {10, 0};
     goal = {10, 250};
 
-    bool colregs;
 
     /* TODO scenario
      * one where the vehicle should stand on but the ts is limited and so fast os cannot reach the front vxs
      *    ..does it return 'no path found' as it should?
      *
     */
-    //flag = false;
+
     switch (scenario) {
 
+      // testing weird scenarios from ulisse simulations
       case 666:{
 
         colregs = 0;
@@ -67,34 +66,7 @@ int main(int, char **) {
                                0.5);
         obstacles.push_back(Obstacle("obs1", {-30, -10}, 0.301, 0, 0, bb_dimension));
 
-/*
-        colregs = 0;
-        v_info.position = {-88.3, -45};
-        v_info.velocities = {1.5};
-        goal = {-109, -49.6};
-
-        bb_data bb_dimension;
-        bb_dimension = bb_data(10, 5,
-                               3.5, 2,
-                               2.5, 2.5,
-                               2.5, 1.5,
-                               1.5, 1.5,
-                               2);
-        obstacles.push_back(Obstacle("obs1", {-85.7, -38.7}, 0.301, 0.1, 0.301, bb_dimension));
-        bb_dimension = bb_data(10, 5,
-                               5.5, 2,
-                               2.5, 2.5,
-                               2.5, 1.5,
-                               1.5, 1.5,
-                               2);
-        obstacles.push_back(Obstacle("obs2", {-40, -82.1}, 1.57, 0.4, 1.57, bb_dimension));*/
-
-
-
         break;
-
-
-
       }
       case 21: {
         //Overtaking and crossing situation on the high seas
@@ -250,7 +222,7 @@ int main(int, char **) {
     if (planner2.ComputePath(goal, colregs, path2)) {
       planner2.print(goal);
       std::cout<<" planner done"<<std::endl;
-      path2.UpdateMetrics(v_info.position,0);
+      path2.UpdateMetrics(v_info.position,0, v_info.rot_speed);
       path2.print();
       if (path2.debug_flag){
         break;

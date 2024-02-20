@@ -14,16 +14,20 @@
 
 class Node {
 public:
+    // Defining attributes
     Eigen::Vector2d position; //vehicle position
-    // time and costToReach are the same when time to reach the target is the cost function
     double time = -1;  // time instant
-    double costToReach = -1; //cost to reach the Node
-    double costToGoal = -1; //estimated cost to reach Goal
-    double costTotal = -1; //total cost
     double speed_to_it = 0;
     std::shared_ptr<Obstacle> obs_ptr = nullptr;
     vx_id vx = NA;
     std::shared_ptr<Node> parent = nullptr;
+
+    // Costs
+    // time and costToReach are the same when time to reach the target is the cost function
+    double costToReach = -1; //cost to reach the Node
+    double costToGoal = -1; //estimated cost to reach Goal
+    double costTotal = -1; //total cost
+
     std::vector<vx_id> currentObsLimitedVxs; //not viable vxs depending on maneuver
     std::vector<std::string> overtakingObsList; //list of obs to overtake from origin up to node
 
@@ -31,7 +35,7 @@ public:
 
     bool ignoring_obs_debug = false;
 
-    double starting_heading = 0;
+    double starting_heading = 0; // TODO if only this was global
     double distFromParent = 0;
     double courseChangeFromParent = 0;
 
@@ -138,8 +142,6 @@ public:
       }
     }
 
-
-    //bool RemoveWorstDuplicates(std::multiset<Node> &set);
 };
 
 

@@ -11,21 +11,21 @@
 #include "oal/data_structs/tpoint.hpp"
 #include "oal/data_structs/bounding_box.hpp"
 
-#define BB_GAP 1.5
-
 class Obstacle {
 //private:
 public:
+    // Defining attributes
     std::string id;
     Eigen::Vector2d position;  //absolute position at time 0
     double head{};
     double vel_dir{};
     double speed{};
     bb_data bb;
+    bool higher_priority = false;
+
     std::vector<Vertex> vxs; // local position (wrt obs)
 
     bool uncertainty = false;
-    bool higher_priority = false;
 
     // Set bb size according to own ship distance
     void SetSize(double dist_x, double dist_y, double theta, double &bb_dim_x_bow, double &bb_dim_x_stern,

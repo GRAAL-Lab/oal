@@ -10,6 +10,7 @@
 #include <eigen3/Eigen/Eigen>
 #include "oal/data_structs/misc.hpp"
 #include "oal/helper_functions.hpp"
+#include "oal/data_structs/path.hpp"
 
 #define MAX_TIME 10000
 #define HeadOnAngle (15*(M_PI/180))
