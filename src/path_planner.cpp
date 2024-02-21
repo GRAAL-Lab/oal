@@ -36,7 +36,10 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
   }
 
   // Root node setup
-  if (!RootSetup(goal_position, open_set)) return false;
+  if (!RootSetup(goal_position, open_set)){
+    std::cout<<" Cannot find way out of bb(s) "<<std::endl;
+    return false;
+  }
   // Initialize reachable with root
   reachable_full_set = open_set;
 
@@ -106,9 +109,12 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
 
   if (!found || current.time == 0) {
     // No path found OR GOAL == START
-    if (current.parent == nullptr) return false; // still in start
+    if (current.parent == nullptr) {
+      std::cout<<" Cannot find a single viable node "<<std::endl;
+      return false; // still in start
+    }
 
-    std::cout << " oal search did not find any path, returning best estimate if any " << std::endl;
+    std::cout << " OAL search did not find any path to goal, returning best estimate if any " << std::endl;
     // Find the node with the smallest est. time to goal among the analyzed ones
     Node best_goal = current;
     while (!reachable_full_set.empty()) {
@@ -119,7 +125,10 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
       }
     }
 
-    if ((best_goal.position - v_info_.position).norm() < acceptanceRadius) return false; // new goal is starting point
+    if ((best_goal.position - v_info_.position).norm() < acceptanceRadius) {
+      std::cout<<" The most close node to goal is basically the starting point "<<std::endl;
+      return false; // new goal is starting point
+    }
     current = best_goal;
   }
 
@@ -249,7 +258,8 @@ bool path_planner::CheckColreg(const Node &start, Node &goal) const {
 // Check if the path between start and goal collide with any obstacle
 bool path_planner::CheckCollision(const Node &start, Node &goal,
                                   const std::shared_ptr<std::vector<Node>> &collision_points) {
-  /* Function returns true if path between start and goal crosses a bb.
+  /* DESCRIPION NOT UP TO DATE
+   * Function returns .. if path between start and goal crosses a bb.
    *  Special situations arise when start and goal points belongs to obstacles bb:
    *    if leaving from INSIDE an obs,
    *      checks path do not cross any diagonal, ensuring no more damage can be done.
@@ -282,8 +292,16 @@ bool path_planner::CheckCollision(const Node &start, Node &goal,
     Eigen::Vector3d bb_direction(obs.speed * cos(obs.vel_dir), obs.speed * sin(obs.vel_dir), 1);
     //bb_direction.normalize(); no, because multiplied by t' it returns the position at time t'
 
-    bool isDepartingObs = obs_ptr.get() == start.obs_ptr.get();
-    bool isApproachingObs = obs_ptr.get() == goal.obs_ptr.get();
+    bool isDepartingObs = false;
+    bool isApproachingObs = false;
+
+    if(start.obs_ptr != nullptr){
+      isDepartingObs = obs_ptr->id == start.obs_ptr->id;
+    }
+
+    if(goal.obs_ptr != nullptr){
+      isApproachingObs = obs_ptr->id == goal.obs_ptr->id;
+    }
 
     // Plot stuff
     {
@@ -357,6 +375,7 @@ bool path_planner::CheckCollision(const Node &start, Node &goal,
           cp_node.time = start.time + collision_point.z();
           collision_points->push_back(cp_node);
         }
+
         return false;
       }
     }
@@ -548,7 +567,6 @@ bool path_planner::CheckPath(const Eigen::Vector2d &vh_pos, Path path) {
   Node start;
   start.position = vh_pos;
   start.time = 0;
-  // TODO temptative
   start.obs_ptr = path.top().obs_ptr;
   start.vx = path.top().vx;
 
@@ -591,7 +609,6 @@ bool path_planner::RootSetup(const Eigen::Vector2d &goal_position, std::multiset
     root.vx = NA;
     // TODO reposition this piece of code
     // Check which Ship has to give way
-    // TODO here colregs compliance is always assumed, change it (?)
     /*Eigen::Vector2d BodyObs_vh = GetProjectionInObsFrame(v_info_.position, surr_obs, 0);
     if(BodyObs_vh.x()>0 && atan2(BodyObs_vh.y(),BodyObs_vh.x()) <= M_PI - OvertakingAngle){
       // Own ship is in a bb of a vessel coming from behind: it is that one that should avoid os

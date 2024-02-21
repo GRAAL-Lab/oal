@@ -1,6 +1,6 @@
 
 #include <random>
-#include "path_planner.hpp"
+#include "oal/path_planner.hpp"
 
 std::vector<double> generateRange(double start, double end, double step) {
   std::vector<double> result;
@@ -13,7 +13,7 @@ std::vector<double> generateRange(double start, double end, double step) {
 
 int main(int, char **) {
   double count = 0;
-  while (count < 10000) {
+  while (count < 1) {
     count++;
     std::cout << "----------------------------------------\n STARTING NEW PLAN " << count << std::endl;
 
@@ -32,13 +32,13 @@ int main(int, char **) {
     int scenario = 666;
 
     // Random generation
-    double n_obs = 10;
-    double area_size = 500;
+    double n_obs = 5;
+    double area_size = 30;
 
-    v_info.velocities = generateRange(0.5, 1.5, 0.1);
+    v_info.velocities = generateRange(1.0, 1.0, 0.1);
     // Keep constants
-    v_info.position = {10, 0};
-    goal = {10, 250};
+    v_info.position = {-50, -50};
+    goal = {50, 50};
 
 
     /* TODO scenario
@@ -49,14 +49,33 @@ int main(int, char **) {
 
     switch (scenario) {
 
+      case 1: {// rand static or moving obstacles
+        // Seed with a real random value, if available
+        std::random_device r;
+        // Choose a random mean between 1 and 6
+        std::default_random_engine e1(r());
+        std::uniform_real_distribution<double> pos_gen(-area_size / 2, area_size / 2);
+        std::uniform_real_distribution<double> speed_gen(0, 1.5);
+        std::uniform_real_distribution<double> heading_gen(-M_PI, M_PI);
+        std::uniform_real_distribution<double> vel_dir_gen(-M_PI / 8, M_PI / 8);
+        for (auto i = 0; i < n_obs; i++) {
+          double heading = heading_gen(e1);
+          Obstacle obs(std::to_string(i + 1), {pos_gen(e1), pos_gen(e1)}, heading, speed_gen(e1),
+                       heading + vel_dir_gen(e1), bb_dimension);
+          //obs.print();
+          obstacles.push_back(obs);
+        }
+        break;
+      }
+
       // testing weird scenarios from ulisse simulations
       case 666: {
 
         colregs = 0;
-        v_info.position = {0.907, -2.01};
+        v_info.position = {0, 0};
         v_info.heading = {-1.22};
         v_info.velocities = {1.5};
-        goal = {-49.4, -16};
+        goal = {30,30};
         bb_data bb_dimension;
         bb_dimension = bb_data(5, 2,
                                16, 6,
@@ -64,7 +83,7 @@ int main(int, char **) {
                                10.5, 4,
                                4.5, 4.5,
                                0.5);
-        obstacles.push_back(Obstacle("obs1", {-30, -10}, 0.301, 0, 0, bb_dimension));
+        obstacles.push_back(Obstacle("obs1", {5, 5}, 0.301, 0, 0, bb_dimension));
 
         break;
       }
@@ -112,24 +131,7 @@ int main(int, char **) {
         goal = {10, 20};
         break;
       }
-      case 1: {// rand static or moving obstacles
-        // Seed with a real random value, if available
-        std::random_device r;
-        // Choose a random mean between 1 and 6
-        std::default_random_engine e1(r());
-        std::uniform_real_distribution<double> pos_gen(-area_size / 2, area_size / 2);
-        std::uniform_real_distribution<double> speed_gen(0, 2);
-        std::uniform_real_distribution<double> heading_gen(-M_PI, M_PI);
-        std::uniform_real_distribution<double> vel_dir_gen(-M_PI / 8, M_PI / 8);
-        for (auto i = 0; i < n_obs; i++) {
-          double heading = heading_gen(e1);
-          Obstacle obs(std::to_string(i + 1), {pos_gen(e1), pos_gen(e1)}, heading, speed_gen(e1),
-                       heading + vel_dir_gen(e1), bb_dimension);
-          obs.print();
-          obstacles.push_back(obs);
-        }
-        break;
-      }
+
 
       case 2: {// head on WORKS (clear differences with/without Colregs)
         v_info.position = {10, 0};
@@ -221,13 +223,14 @@ int main(int, char **) {
     Path path2;
     std::cout << std::endl << "Colregs: " << colregs << std::endl;
     if (planner2.ComputePath(goal, colregs, path2)) {
+      std::cout<<" n. inner waypoints: "<<path2.size()-2<<std::endl;
       planner2.print(goal);
       std::cout << " planner done" << std::endl;
       path2.UpdateMetrics(v_info.position, 0, v_info.rot_speed);
       path2.print();
-      if (path2.debug_flag) {
+      /*if (path2.debug_flag) {
         break;
-      }
+      }*/
       v_info.position.x() += 1;
       v_info.position.y() += -1;
       if (planner1.CheckPath(v_info.position, path2)) {

@@ -125,8 +125,8 @@ public:
                 << "  v_info.velocities = {";
       printVector(v_info_.velocities);
       std::cout << "};\n"
-                << "  goal = {" << goal.x() << ", " << goal.y() << "};\n"
-                << "  bb_data bb_dimension;\n";
+                << "  goal = {" << goal.x() << ", " << goal.y() << "};\n";
+               /* << "  bb_data bb_dimension;\n";
 
       for (const auto &obs: obss_info_.obstacles) {
         std::cout << " bb_dimension = bb_data(" << obs->bb.dim_x << ", " << obs->bb.dim_y << ", \n"
@@ -139,7 +139,7 @@ public:
                   << obs->position.x() << ", " << obs->position.y() << "}, "
                   << obs->head << ", " << obs->speed << ", " << obs->vel_dir << ", bb_dimension));\n";
 
-      }
+      }*/
     }
 };
 
