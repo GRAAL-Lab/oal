@@ -554,7 +554,7 @@ bool path_planner::IsInAnyBB(TPoint time_point,
   return false;
 }
 
-bool path_planner::CheckPath(const Eigen::Vector2d &vh_pos, Path path) {
+bool path_planner::CheckPath(const Eigen::Vector2d &vh_pos, Path path, Eigen::Vector2d &unreachable_wp) {
   // the waypoint should be just the ones left to reach, not the whole path returned by the library
   if (path.empty()) {
     std::cout << " PATH IS EMPTY -> CHECK = FALSE" << std::endl;
@@ -580,10 +580,10 @@ bool path_planner::CheckPath(const Eigen::Vector2d &vh_pos, Path path) {
     goal.speed_to_it = path.top().speed_to_it;
     path.pop();
     if (!CheckCollision(start, goal)) {
-      std::cout << " COLLISION WHILE CHECKING PATH: " << std::endl;
-      whole_path.print(true);
-      std::cout << " collision in checked path between (" << start.position.x() << ", " << start.position.y()
-                << ") and (" << goal.position.x() << ", " << goal.position.y() << ") " << std::endl;
+      //std::cout << " COLLISION WHILE CHECKING PATH: " << std::endl;
+      //whole_path.print(true);
+      unreachable_wp = goal.position;
+      //std::cout << " collision in checked path between (" << start.position.x() << ", " << start.position.y() << ") and (" << goal.position.x() << ", " << goal.position.y() << ") " << std::endl;
       return false;
     }
 

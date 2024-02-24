@@ -89,7 +89,7 @@ public:
     bool ComputePath(const Eigen::Vector2d &goal, bool colregs, Path &path);
 
     // Given a trajectory, checks if it's safe
-    bool CheckPath(const Eigen::Vector2d &vh_pos, Path path);
+    bool CheckPath(const Eigen::Vector2d &vh_pos, Path path, Eigen::Vector2d &unreachable_wp);
 
     void SetVhData(VehicleInfo v_info) {
       v_info_ = std::move(v_info);

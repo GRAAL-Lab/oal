@@ -233,8 +233,11 @@ int main(int, char **) {
       }*/
       v_info.position.x() += 1;
       v_info.position.y() += -1;
-      if (planner1.CheckPath(v_info.position, path2)) {
+      Eigen::Vector2d unreachable_wp;
+      if (planner1.CheckPath(v_info.position, path2, unreachable_wp)) {
         std::cout << "Checked!!" << std::endl;
+      }else{
+        std::cout<<" Could not reach wp: "<<unreachable_wp.x()<<", "<<unreachable_wp.y()<<std::endl;
       }
     } else {
       std::cout << std::endl << "Not found." << std::endl;
