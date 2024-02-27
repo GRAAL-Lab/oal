@@ -227,6 +227,10 @@ bool path_planner::CheckColreg(const Node &start, Node &goal) const {
       // overtaking
       if (goal.vx == FR) {
         goal.currentObsLimitedVxs.push_back(RR);
+        goal.currentObsLimitedVxs.push_back(FL);
+      }
+      if (goal.vx == FL) {
+          goal.currentObsLimitedVxs.push_back(FR);
       }
       //goal.overtakingObsList.push_back(goal.obs_ptr->id);
       // avoid future crossings

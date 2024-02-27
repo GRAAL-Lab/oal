@@ -31,9 +31,6 @@ public:
     void SetSize(double dist_x, double dist_y, double theta, double &bb_dim_x_bow, double &bb_dim_x_stern,
                  double &bb_dim_y_starboard, double &bb_dim_y_port) const;
 
-    // Compute local position of bb vxs
-    void FindLocalVxs(const Eigen::Vector2d &vhPos);
-
     // Project vxs position in world frame
     void FindAbsVxs(double time, std::vector<Vertex> &vxs_abs);
 
@@ -58,6 +55,9 @@ public:
              bool high_priority = false)
             : id(std::move(name)), position(std::move(position)), head(heading), speed(speed), vel_dir(vel_dir),
               bb(bb), higher_priority(high_priority) {}
+
+    // Compute local position of bb vxs
+    void FindLocalVxs(const Eigen::Vector2d &vhPos);
 
 };
 
