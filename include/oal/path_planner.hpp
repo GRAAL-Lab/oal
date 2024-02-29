@@ -67,6 +67,9 @@ private:
     }
 
 public:
+
+    int n_node_analyzed = 0;
+    double dist_from_goal = 0;
     // vehicle start position and obstacles information are supposed to be taken in the same time instant.
     path_planner() = default;
 
@@ -105,19 +108,6 @@ public:
     void SetAccRadius(double acc_radius) {
       acceptanceRadius = acc_radius;
     }
-
-/*    Eigen::Vector2d GetBBSize(const std::string& obs_id, vx_id vx_id){
-        for(const auto& obs : obss_info_.obstacles){
-            if(obs->id == obs_id){
-                for(const auto& vx : obs->vxs){
-                    if(vx.id == vx_id){
-                        return vx.position;
-                    }
-                }
-            }
-        }
-        return {0, 0};  // should not reach here
-    }*/
 
     void print(Eigen::Vector2d goal) const {
       auto printVector = [](const std::vector<double> &vec, const std::string &sep = ",") {

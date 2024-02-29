@@ -103,6 +103,8 @@ public:
 
     //bool HasAncestor(const Node &node) const;
 
+    bool HasSimilarIn(std::multiset<Node> &set);
+
     // Set node parent, inherit its overtakingObsList and update "alternative costs"
     void SetParent(const Node &parent_node) {
       parent = std::make_shared<Node>(parent_node);

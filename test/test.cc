@@ -2,6 +2,27 @@
 #include <random>
 #include "oal/path_planner.hpp"
 
+#include <chrono>
+
+std::vector<double> generateVel(double avg_value, int size){
+  std::vector<double> output;
+  output.push_back(avg_value);
+  if (size == 1) return output;
+  double sign = 1;
+  double gap = 0.1;
+  while(output.size()<size){
+    output.push_back(avg_value+sign*gap);
+    if(sign<0){
+      if(gap == avg_value-0.1) gap = 0.05;
+      gap+=0.1;
+      sign = 1;
+    }else{
+      sign = -1;
+    }
+  }
+  return output;
+}
+
 std::vector<double> generateRange(double start, double end, double step) {
   std::vector<double> result;
   for (double i = start; i <= end; i += step) {
@@ -11,258 +32,381 @@ std::vector<double> generateRange(double start, double end, double step) {
   return result;
 }
 
+struct Entry{
+    bool colregs = false;
+    int n_nodes{};
+    double computation_time{};
+    double path_length{};
+    double path_time{};
+    int n_waypoints{};
+    bool found = true;
+    double dist_from_goal{};
+
+    void print(std::ofstream& file) const{
+      file<<n_nodes<<"_"<<computation_time<<"_"<<
+      path_length<<"_"<<path_time<<"_"<<n_waypoints<<"_"<<found<<"_"<<dist_from_goal<<"_"<<colregs<<";";
+    }
+};
+
 int main(int, char **) {
-  double count = 0;
-  while (count < 1) {
-    count++;
-    std::cout << "----------------------------------------\n STARTING NEW PLAN " << count << std::endl;
+  if(true){
+
+    int test_number_obs = 10;
+    int test_number_speeds = 10;
+    int runs = 500;
+
+    bool colregs = false;
+    bool colregs_compare = false;
+    char input;
+    std::cout<<"Colregs compare [N/y]: ";
+    std::cin >> input;
+    if(input == 'y') {
+        colregs_compare = true;
+    }else{
+        std::cout<<"Colregs [N/y]: ";
+        std::cin >> input;
+        if(input == 'y') colregs = true;
+    }
+
+
+    std::cout<<"Only static obs [N/y]: ";
+    std::cin >> input;
+    double max_speed = 1.5;
+    if(input == 'y') {
+        max_speed = 0;
+    }
+
+    std::cout<<"Number max obs: ";
+    std::cin >> test_number_obs;
+    std::cout<<"Number max speeds: ";
+    std::cin >> test_number_speeds;
+    std::cout<<"Number runs: ";
+    std::cin >> runs;
+
+
 
     VehicleInfo v_info;
-    Eigen::Vector2d goal;
-    std::vector<Obstacle> obstacles;
-    bool colregs;
-
-    bb_data bb_dimension(20, 5,
-                         1.6, 1.4,
-                         2, 2,
-                         1.5, 1.2,
-                         1.5, 1.5,
-                         0);
-
-    int scenario = 666;
-
-    // Random generation
-    double n_obs = 5;
-    double area_size = 30;
-
-    v_info.velocities = generateRange(1.0, 1.0, 0.1);
-    // Keep constants
     v_info.position = {-50, -50};
-    goal = {50, 50};
+    Eigen::Vector2d goal = {50, 50};
+    double area_size = 50;
 
 
-    /* TODO scenario
-     * one where the vehicle should stand on but the ts is limited and so fast os cannot reach the front vxs
-     *    ..does it return 'no path found' as it should?
-     *
-    */
+    int speed_size;
+    int obs_number;
+    int not_found = 0;
 
-    switch (scenario) {
+    bb_data bb_dimension(6, 2,
+                         4, 3,
+                         3, 3,
+                         2, 2,
+                         2, 2,
+                         1);
 
-      case 1: {// rand static or moving obstacles
-        // Seed with a real random value, if available
-        std::random_device r;
-        // Choose a random mean between 1 and 6
-        std::default_random_engine e1(r());
-        std::uniform_real_distribution<double> pos_gen(-area_size / 2, area_size / 2);
-        std::uniform_real_distribution<double> speed_gen(0, 1.5);
-        std::uniform_real_distribution<double> heading_gen(-M_PI, M_PI);
-        std::uniform_real_distribution<double> vel_dir_gen(-M_PI / 8, M_PI / 8);
-        for (auto i = 0; i < n_obs; i++) {
-          double heading = heading_gen(e1);
-          Obstacle obs(std::to_string(i + 1), {pos_gen(e1), pos_gen(e1)}, heading, speed_gen(e1),
-                       heading + vel_dir_gen(e1), bb_dimension);
-          //obs.print();
-          obstacles.push_back(obs);
+    std::random_device r;
+    std::default_random_engine e1(r());
+    std::uniform_real_distribution<double> pos_gen(-area_size / 2, area_size / 2);
+    std::uniform_real_distribution<double> speed_gen(0, max_speed);
+    std::uniform_real_distribution<double> heading_gen(-M_PI, M_PI);
+    std::uniform_real_distribution<double> vel_dir_gen(-M_PI / 8, M_PI / 8);
+
+
+    std::ofstream file;
+    file.open("data.csv", std::ofstream::out | std::ofstream::trunc);
+    file<<"  \n";
+    for (obs_number = 1; obs_number <= test_number_obs; obs_number++){
+      for (speed_size = 1; speed_size <= test_number_speeds; speed_size++){
+        if(colregs_compare){
+            file << "\n CObs"<<obs_number<<",Speed"<<speed_size<<",";
+        }  else{
+            file << "\n Obs"<<obs_number<<",Speed"<<speed_size<<",";
         }
-        break;
-      }
 
-      // testing weird scenarios from ulisse simulations
-      case 666: {
+        std::cout<<" ["<<obs_number<<"/"<<test_number_obs<<"]  ["<<speed_size<<"/"<<test_number_speeds<<"] "<<std::endl;
+        /*double max_speed = 0.1 + ((double)speed_size - 1)/10;
+        v_info.velocities = generateRange(0.1, max_speed, 0.1);*/
+        v_info.velocities = generateVel(1, speed_size);
+        //for (auto v : v_info.velocities) std::cout<<v<<"_";
+        double max_speed = *std::max_element(v_info.velocities.begin(), v_info.velocities.end());
+        int counter = 0;
 
-        colregs = 0;
-        v_info.position = {0, 0};
-        v_info.heading = {-1.22};
-        v_info.velocities = {1.5};
-        goal = {30,30};
-        bb_data bb_dimension;
-        bb_dimension = bb_data(5, 2,
-                               16, 6,
-                               6.5, 6.5,
-                               10.5, 4,
-                               4.5, 4.5,
-                               0.5);
-        obstacles.push_back(Obstacle("obs1", {5, 5}, 0.301, 0, 0, bb_dimension));
+        while(counter < runs){
+          bool is_good = true;
+          auto t_start_inner = std::chrono::high_resolution_clock::now();
+          std::vector<Obstacle> obstacles;
+          for (auto i = 0; i < obs_number; i++) {
+            double heading = heading_gen(e1);
+            Obstacle obs(std::to_string(i + 1), {pos_gen(e1), pos_gen(e1)}, heading, speed_gen(e1),
+                         heading + vel_dir_gen(e1), bb_dimension);
+            //obs.print();
+            obstacles.push_back(obs);
+          }
 
-        break;
-      }
-      case 21: {
-        //Overtaking and crossing situation on the high seas
-        // https://www.advanced.ecolregs.com/index.php?option=com_k2&view=item&id=172:overtaking-and-crossing-situation-on-the-high-seas&Itemid=359&lang=en
-        v_info.position = {10, 0};
-        Obstacle obsB("B", {20, -10}, M_PI / 2, 1, M_PI / 2, bb_dimension);
-        Obstacle obsC("C", {40, 40}, -M_PI * 5 / 6, 1, -M_PI * 5 / 6, bb_dimension);
-        obstacles.push_back(obsB);
-        obstacles.push_back(obsC);
-        goal = {10, 50};
-        break;
+          for(auto i = 0; i<2 ;i++){
+              Entry entry{};
+              if (i == 0){
+                  if(colregs_compare) colregs = false;
+              } else if (i == 1 && !colregs_compare){
+                  break;
+              } else {
+                  colregs = true;
+              }
 
-      }
-      case 22: {
-        //Overtaking and crossing situation on the high seas
-        // https://www.advanced.ecolregs.com/index.php?option=com_k2&view=item&id=367:overtaking-and-crossing-situation-on-the-high-seas&Itemid=359&lang=en
-        v_info.position = {10, 0};
-        Obstacle obsB("B", {15, -10}, M_PI / 2, 1, M_PI / 2, bb_dimension);
-        Obstacle obsC("C", {40, 30}, -M_PI, 1, -M_PI, bb_dimension);
-        obstacles.push_back(obsB);
-        obstacles.push_back(obsC);
-        goal = {10, 50};
-        break;
-      }
-      case 23: {
-        //Overtaking and head-on situation on the high seas
-        // https://www.advanced.ecolregs.com/index.php?option=com_k2&view=item&id=370:overtaking-and-head-on-situation-on-the-high-seas&Itemid=359&lang=en
-        v_info.position = {10, 0};
-        Obstacle obsB("B", {10, 20}, -M_PI / 2, 1, -M_PI / 2, bb_dimension);
-        Obstacle obsC("C", {13.2, 25}, -M_PI / 2, 1, -M_PI / 2, bb_dimension);
-        obstacles.push_back(obsB);
-        obstacles.push_back(obsC);
-        goal = {10, 20};
-        break;
-      }
-      case 24: {
-        //
-        v_info.position = {10, 0};
-        Obstacle obsB("B", {-5, 15}, 0, 1, 0, bb_dimension);
-        Obstacle obsC("C", {-5, 10}, 0, 1, 0, bb_dimension, true);
-        obstacles.push_back(obsB);
-        obstacles.push_back(obsC);
-        goal = {10, 20};
-        break;
-      }
+              double ACC_RADIUS = 2;
+              path_planner planner(v_info, obstacles, ACC_RADIUS);
+              Path path, temp;
+              if (!planner.ComputePath(goal, colregs, path)) {
+                  not_found++;
+                  entry.found = false;
+              }else{
+                  temp = path;
+                  entry.dist_from_goal = planner.dist_from_goal;
+                  entry.n_waypoints = (int)path.size()-2;
+                  //if(!colregs && !colregs_compare && entry.n_waypoints == 0) is_good = false;
+                  auto last = path.top();
+                  path.pop();
+                  while(!path.empty()){
+                      entry.path_length += (path.top().position - last.position).norm();
+                      last = path.top();
+                      path.pop();
+                  }
+                  entry.path_length += (last.position - goal).norm();
+                  entry.path_length = entry.path_length / (v_info.position - goal).norm();
+                  //std::cout<<max_speed<<", "<<last.time<<", "<<(v_info.position - goal).norm()<<"\n";
+                  entry.path_time = last.time / (v_info.position - goal).norm() / max_speed;
 
+                  if (entry.path_length < 1) {
+                      std::cout<<entry.path_length * (v_info.position - goal).norm()<<"\n";
+                      temp.print(true);
+                  }
+              }
+              entry.colregs = colregs;
+              entry.n_nodes = planner.n_node_analyzed;
 
-      case 2: {// head on WORKS (clear differences with/without Colregs)
-        v_info.position = {10, 0};
-        Obstacle obs("1", {10.5, 35}, -M_PI / 2, 1, -M_PI / 2, bb_dimension);
-        obstacles.push_back(obs);
-        goal = {10, 20};
-        break;
-      }
-      case 3: {// TS crossing from right
-        v_info.position = {10, 0};
-        Obstacle obs("1", {24.4009, 10}, M_PI * 6 / 7, 0.5, M_PI * 6 / 7, bb_dimension);
-        obstacles.push_back(obs);
-        goal = {10, 20};
-        break;
-      }
-      case 4: {// crossing left
-        v_info.position = {10, 0};
-        //Obstacle obs4_1 = Obstacle("1", {8.5, 4}, 0, 1, 0.5, 0.5, 2, 1.5);
-        //obss_info.obstacles.push_back(obs4_1);
-        goal = {10, 10};
-        break;
-      }
-
-      case 5: // overtake
-        break;
-      case 6: // overtaken
-        break;
-
-      case 8: {// start in bb
-        v_info.position = {10, 0};
-        //Obstacle obs1("1", {13, 4.5}, 0, 3.12, 0, bb_dimension);
-        Obstacle obs1("1", {-4, 0.5}, 0, 0.9, 0, bb_dimension);
-        //Obstacle obs2("2", {10, 16}, -M_PI / 2, 0.9, -M_PI / 2, bb_dimension);
-        //obstacles.push_back(obs1);
-        obstacles.push_back(obs1);
-        goal = {10, 40};
-        break;
-      }
-      case 9: {// goal in bb
-        v_info.position = {10, 0};
-        Obstacle obs1("1", {10, 18}, M_PI / 2, 0, M_PI / 2, bb_dimension, true);
-        obstacles.push_back(obs1);
-        goal = {10, 20};
-        break;
-      }
-      case 10: { // bb overlap
-        v_info.position = {10, 0};
-        Obstacle obs1("1", {9, 3.7}, 0, 0, 0, bb_dimension);
-        obstacles.push_back(obs1);
-        Obstacle obs2("2", {11, 4}, 0, 0, 0, bb_dimension);
-        obstacles.push_back(obs1);
-        goal = {10, 10};
-        break;
-      }
-      case 11: { // goal surrounded
-        v_info.position = {10, 0};
-        Obstacle obs1("1", {10, 9}, 0, 0, 0, bb_dimension);
-        obstacles.push_back(obs1);
-        Obstacle obs2("2", {10, 11}, 0, 0, 0, bb_dimension);
-        obstacles.push_back(obs1);
-        Obstacle obs3("3", {11, 10}, 0, 0, 0, bb_dimension);
-        obstacles.push_back(obs1);
-        Obstacle obs4("4", {9, 10}, 0, 0, 0, bb_dimension);
-        obstacles.push_back(obs1);
-        obstacles.push_back(obs1);
-        obstacles.push_back(obs2);
-        obstacles.push_back(obs3);
-        obstacles.push_back(obs4);
-        goal = {10, 10};
-        break;
-      }
-      default:
-        break;
-    }
-
-    double ACC_RADIUS = 2;
-
-    path_planner planner1(v_info, obstacles, ACC_RADIUS);
-    path_planner planner2(v_info, obstacles, ACC_RADIUS);
-
-    /*Path path1;
-    std::cout << std::endl << "Colregs: false";
-    if (planner1.ComputePath(goal, false, path1)) {
-      std::cout << std::endl << "Found." << std::endl;
-    } else {
-      std::cout << std::endl << "Not found." << std::endl;
-    }*/
-
-    Path path2;
-    std::cout << std::endl << "Colregs: " << colregs << std::endl;
-    if (planner2.ComputePath(goal, colregs, path2)) {
-      std::cout<<" n. inner waypoints: "<<path2.size()-2<<std::endl;
-      planner2.print(goal);
-      std::cout << " planner done" << std::endl;
-      path2.UpdateMetrics(v_info.position, 0, v_info.rot_speed);
-      path2.print();
-      /*if (path2.debug_flag) {
-        break;
-      }*/
-      v_info.position.x() += 1;
-      v_info.position.y() += -1;
-      Eigen::Vector2d unreachable_wp;
-      if (planner1.CheckPath(v_info.position, path2, unreachable_wp)) {
-        std::cout << "Checked!!" << std::endl;
-      }else{
-        std::cout<<" Could not reach wp: "<<unreachable_wp.x()<<", "<<unreachable_wp.y()<<std::endl;
-      }
-    } else {
-      std::cout << std::endl << "Not found." << std::endl;
-    }
-
-    // this after I'm done following the path (even a part of it)
-    //auto priorOvertakenVesselsList = path2.overtakingObsList;
-
-    /*int s_count = 0;
-      double s_value = 0;
-      Node wp;
-      while (!path2.empty()) {
-        wp = path2.top();
-        path2.pop();
-        if (wp.vh_speed != s_value) {
-          s_count++;
-          s_value = wp.vh_speed;
+              auto t_end_inner = std::chrono::high_resolution_clock::now();
+              double elapsed_time_ms_inner = std::chrono::duration<double, std::milli>(t_end_inner-t_start_inner).count();
+              entry.computation_time = elapsed_time_ms_inner;
+              if(is_good){
+                  entry.print(file);
+                  counter++;
+              }
+          }
         }
-      }
-      std::cout << "  Time: " << wp.time;
-      if(wp.time<=0) throw std::invalid_argument("wtf");
-      std::cout << "  speed_change: " << s_count<< std::endl;*/
 
+
+      }
+    }
+    std::cout<<" Not found number: "<<not_found<<std::endl;
+    file.close();
+
+    return 0;
 
   }
 
+  std::cout << "----------------------------------------\n STARTING NEW PLAN " << std::endl;
+
+  VehicleInfo v_info;
+  Eigen::Vector2d goal;
+  std::vector<Obstacle> obstacles;
+  bool colregs;
+
+  bb_data bb_dimension(6, 2,
+                       4, 3,
+                       3, 3,
+                       2, 2,
+                       2, 2,
+                       1);
+
+  int scenario = 21;
+
+  v_info.velocities = generateRange(1.0, 1.0, 0.1);
+  // Keep constants
+  v_info.position = {-50, -50};
+  goal = {50, 50};
+
+
+  /* TODO scenario
+   * one where the vehicle should stand on but the ts is limited and so fast os cannot reach the front vxs
+   *    ..does it return 'no path found' as it should?
+   *
+  */
+
+  switch (scenario) {
+
+
+    case 21: {
+      //Overtaking and crossing situation on the high seas
+      // https://www.advanced.ecolregs.com/index.php?option=com_k2&view=item&id=172:overtaking-and-crossing-situation-on-the-high-seas&Itemid=359&lang=en
+      v_info.position = {10, 0};
+      Obstacle obsB("B", {20, -10}, M_PI / 2, 1, M_PI / 2, bb_dimension);
+      Obstacle obsC("C", {40, 40}, -M_PI * 5 / 6, 1, -M_PI * 5 / 6, bb_dimension);
+      obstacles.push_back(obsB);
+      obstacles.push_back(obsC);
+      goal = {10, 50};
+      break;
+
+    }
+    case 22: {
+      //Overtaking and crossing situation on the high seas
+      // https://www.advanced.ecolregs.com/index.php?option=com_k2&view=item&id=367:overtaking-and-crossing-situation-on-the-high-seas&Itemid=359&lang=en
+      v_info.position = {10, 0};
+      Obstacle obsB("B", {15, -10}, M_PI / 2, 1, M_PI / 2, bb_dimension);
+      Obstacle obsC("C", {40, 30}, -M_PI, 1, -M_PI, bb_dimension);
+      obstacles.push_back(obsB);
+      obstacles.push_back(obsC);
+      goal = {10, 50};
+      break;
+    }
+    case 23: {
+      //Overtaking and head-on situation on the high seas
+      // https://www.advanced.ecolregs.com/index.php?option=com_k2&view=item&id=370:overtaking-and-head-on-situation-on-the-high-seas&Itemid=359&lang=en
+      v_info.position = {10, 0};
+      Obstacle obsB("B", {10, 20}, -M_PI / 2, 1, -M_PI / 2, bb_dimension);
+      Obstacle obsC("C", {13.2, 25}, -M_PI / 2, 1, -M_PI / 2, bb_dimension);
+      obstacles.push_back(obsB);
+      obstacles.push_back(obsC);
+      goal = {10, 20};
+      break;
+    }
+    case 24: {
+      //
+      v_info.position = {10, 0};
+      Obstacle obsB("B", {-5, 15}, 0, 1, 0, bb_dimension);
+      Obstacle obsC("C", {-5, 10}, 0, 1, 0, bb_dimension, true);
+      obstacles.push_back(obsB);
+      obstacles.push_back(obsC);
+      goal = {10, 20};
+      break;
+    }
+
+
+    case 2: {// head on WORKS (clear differences with/without Colregs)
+      v_info.position = {10, 0};
+      Obstacle obs("1", {10.5, 35}, -M_PI / 2, 1, -M_PI / 2, bb_dimension);
+      obstacles.push_back(obs);
+      goal = {10, 20};
+      break;
+    }
+    case 3: {// TS crossing from right
+      v_info.position = {10, 0};
+      Obstacle obs("1", {24.4009, 10}, M_PI * 6 / 7, 0.5, M_PI * 6 / 7, bb_dimension);
+      obstacles.push_back(obs);
+      goal = {10, 20};
+      break;
+    }
+    case 4: {// crossing left
+      v_info.position = {10, 0};
+      //Obstacle obs4_1 = Obstacle("1", {8.5, 4}, 0, 1, 0.5, 0.5, 2, 1.5);
+      //obss_info.obstacles.push_back(obs4_1);
+      goal = {10, 10};
+      break;
+    }
+
+    case 5: // overtake
+      break;
+    case 6: // overtaken
+      break;
+
+    case 8: {// start in bb
+      v_info.position = {10, 0};
+      //Obstacle obs1("1", {13, 4.5}, 0, 3.12, 0, bb_dimension);
+      Obstacle obs1("1", {-4, 0.5}, 0, 0.9, 0, bb_dimension);
+      //Obstacle obs2("2", {10, 16}, -M_PI / 2, 0.9, -M_PI / 2, bb_dimension);
+      //obstacles.push_back(obs1);
+      obstacles.push_back(obs1);
+      goal = {10, 40};
+      break;
+    }
+    case 9: {// goal in bb
+      v_info.position = {10, 0};
+      Obstacle obs1("1", {10, 18}, M_PI / 2, 0, M_PI / 2, bb_dimension, true);
+      obstacles.push_back(obs1);
+      goal = {10, 20};
+      break;
+    }
+    case 10: { // bb overlap
+      v_info.position = {10, 0};
+      Obstacle obs1("1", {9, 3.7}, 0, 0, 0, bb_dimension);
+      obstacles.push_back(obs1);
+      Obstacle obs2("2", {11, 4}, 0, 0, 0, bb_dimension);
+      obstacles.push_back(obs1);
+      goal = {10, 10};
+      break;
+    }
+    case 11: { // goal surrounded
+      v_info.position = {10, 0};
+      Obstacle obs1("1", {10, 9}, 0, 0, 0, bb_dimension);
+      obstacles.push_back(obs1);
+      Obstacle obs2("2", {10, 11}, 0, 0, 0, bb_dimension);
+      obstacles.push_back(obs1);
+      Obstacle obs3("3", {11, 10}, 0, 0, 0, bb_dimension);
+      obstacles.push_back(obs1);
+      Obstacle obs4("4", {9, 10}, 0, 0, 0, bb_dimension);
+      obstacles.push_back(obs1);
+      obstacles.push_back(obs1);
+      obstacles.push_back(obs2);
+      obstacles.push_back(obs3);
+      obstacles.push_back(obs4);
+      goal = {10, 10};
+      break;
+    }
+    default:
+      break;
+  }
+
+  double ACC_RADIUS = 2;
+
+  path_planner planner1(v_info, obstacles, ACC_RADIUS);
+  path_planner planner2(v_info, obstacles, ACC_RADIUS);
+
+  /*Path path1;
+  std::cout << std::endl << "Colregs: false";
+  if (planner1.ComputePath(goal, false, path1)) {
+    std::cout << std::endl << "Found." << std::endl;
+  } else {
+    std::cout << std::endl << "Not found." << std::endl;
+  }*/
+
+  Path path2;
+  std::cout << std::endl << "Colregs: " << colregs << std::endl;
+  if (planner2.ComputePath(goal, colregs, path2)) {
+    std::cout<<" n. inner waypoints: "<<path2.size()-2<<std::endl;
+    planner2.print(goal);
+    std::cout << " planner done" << std::endl;
+    path2.UpdateMetrics(v_info.position, 0, v_info.rot_speed);
+    path2.print();
+    /*if (path2.debug_flag) {
+      break;
+    }*/
+    v_info.position.x() += 1;
+    v_info.position.y() += -1;
+    Eigen::Vector2d unreachable_wp;
+    if (planner1.CheckPath(v_info.position, path2, unreachable_wp)) {
+      std::cout << "Checked!!" << std::endl;
+    }else{
+      std::cout<<" Could not reach wp: "<<unreachable_wp.x()<<", "<<unreachable_wp.y()<<std::endl;
+    }
+  } else {
+    std::cout << std::endl << "Not found." << std::endl;
+  }
+
+  // this after I'm done following the path (even a part of it)
+  //auto priorOvertakenVesselsList = path2.overtakingObsList;
+
+  /*int s_count = 0;
+    double s_value = 0;
+    Node wp;
+    while (!path2.empty()) {
+      wp = path2.top();
+      path2.pop();
+      if (wp.vh_speed != s_value) {
+        s_count++;
+        s_value = wp.vh_speed;
+      }
+    }
+    std::cout << "  Time: " << wp.time;
+    if(wp.time<=0) throw std::invalid_argument("wtf");
+    std::cout << "  speed_change: " << s_count<< std::endl;*/
+
 
 }
+

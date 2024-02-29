@@ -2,22 +2,23 @@
 
 # At LEAST 2.8 but newer is better
 cmake_minimum_required(VERSION 3.2 FATAL_ERROR)
-cmake_policy(SET CMP0057 NEW)  # Set policy CMP0057 to NEW to support IN_LIST.
-
+project(oal VERSION 0.1 LANGUAGES CXX)
 
 # Must use GNUInstallDirs to install libraries into correct
 # locations on all platforms.
 include(GNUInstallDirs)
 
-if (NOT CMAKE_CXX_STANDARD)
-    set(CMAKE_CXX_STANDARD 17)
-endif ()
+# Default to C++17
+#if(NOT CMAKE_CXX_STANDARD)
+set(CMAKE_CXX_STANDARD 17)
+#endif()
+
+#if(NOT CMAKE_BUILD_TYPE)
+set(CMAKE_BUILD_TYPE RelWithDebInfo)
+#endif()
 
 
-# Define library. Only source files here!
-project(oal VERSION 0.1 LANGUAGES CXX)
-
-option(BUILD_TESTS "Compile tests" ON)
+option(BUILD_TESTS "Compile tests" OFF)
 
 add_library(oal SHARED
         src/path_planner.cpp

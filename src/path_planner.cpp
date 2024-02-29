@@ -20,6 +20,7 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
   }
 
   std::multiset<Node> open_set;  // set of reachable nodes, ordered by total cost (ascending), still to analyze
+  std::multiset<Node> close_set;  // set of analyzed nodes
   std::multiset<Node> reachable_full_set; // set of all the reachable nodes (open_set + closed set)
   Node goal, current;
   // Goal node setup
@@ -36,8 +37,8 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
   }
 
   // Root node setup
-  if (!RootSetup(goal_position, open_set)){
-    std::cout<<" Cannot find way out of bb(s) "<<std::endl;
+  if (!RootSetup(goal_position, open_set)) {
+    std::cout << " Cannot find way out of bb(s) " << std::endl;
     return false;
   }
   // Initialize reachable with root
@@ -46,14 +47,13 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
   // Run until every node is studied or a path is found
   bool found = false;
   while (!open_set.empty()) {
+    n_node_analyzed++;
     current = *open_set.begin();
     open_set.erase(open_set.begin());
+    close_set.insert(current);
 
     if (open_set.size() > 50000 && (open_set.size() % 10000 == 0)) {
-      std::cout << "Number of nodes to analyze: " << open_set.size() << std::endl;
-      /*path.debug_flag = true;
-      found = true;
-      return true;*/
+        std::cout << "Number of nodes analyzed: " << n_node_analyzed << ", open set size: "<<open_set.size()<<", close set size: "<<close_set.size() <<std::endl;
     }
 
     // Check if goal is reachable
@@ -76,36 +76,24 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
         // Create new Node
         Node new_node(vx.intercept_point, obs_ptr, vx.id, current);
         new_node.speed_to_it = vx.intercept_speed;
-        if (CheckColreg(current, new_node)) {
-          // The path to vx respects the colregs (if it needs to)
-          if (CheckCollision(current, new_node)) {
-            // Collision free
-            if (!new_node.IsUnique(current)) {
-              // Not unique means it is returning on a vertex already visited.
-              continue;
-            }
-            // Save new node
-            new_node.UpdateCosts(goal_position, GetHighestSpeed(), v_info_.rot_speed);
-            open_set.insert(new_node);
-            reachable_full_set.insert(new_node);
-            /* if (new_node.RemoveWorstDuplicates(reachable_full_set)) {
-               // new_node is unique: either always been or it was better than similar and so the other was trashed
-               //     otherwise discarded because better one already analyzed
-               new_node.RemoveWorstDuplicates(open_set); // update open_set too, outcome already known
-               // Save new node
-               for (double &speed: v_info_.velocities) {
-                 // Every node will expand with the different velocities
-                 new_node.vh_speed = speed;
-                 new_node.UpdateCosts(goal_position);
-                 open_set.insert(new_node);
-                 reachable_full_set.insert(new_node);
-               }
-             }*/
-          }
+
+        if (new_node.HasSimilarIn(close_set)) {
+          continue;
         }
+        if (!new_node.IsUnique(current) || !CheckColreg(current, new_node) || !CheckCollision(current, new_node)) {
+          // Not unique means it is returning on a vertex already visited.
+          close_set.insert(new_node);
+          continue;
+        }
+
+        // Save new node
+        new_node.UpdateCosts(goal_position, GetHighestSpeed(), v_info_.rot_speed);
+        open_set.insert(new_node);
+        reachable_full_set.insert(new_node);
       }
     }
   }
+
 
   if (!found || current.time == 0) {
     // No path found OR GOAL == START
@@ -130,6 +118,7 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
       return false; // new goal is starting point
     }
     current = best_goal;
+    dist_from_goal = (best_goal.position - v_info_.position).norm();
   }
 
   //current.print();
