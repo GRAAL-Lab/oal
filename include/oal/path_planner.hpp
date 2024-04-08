@@ -11,12 +11,22 @@
 #include "oal/data_structs/misc.hpp"
 #include "oal/helper_functions.hpp"
 #include "oal/data_structs/path.hpp"
+#include <chrono>
 
 #define MAX_TIME 10000
 #define HeadOnAngle (15*(M_PI/180))
 #define OvertakingAngle (112*(M_PI/180))
 #define OBSTACLE_STATIC_SPEED_THRESHOLD 0.01
 //#define acceptanceRadius (5)
+
+struct stats{
+    double check_collision = 0;
+    int n_ck = 0;
+    double find_points = 0;
+    int n_points = 0;
+    double set_order = 0;
+    int set_ordered =0 ;
+};
 
 class path_planner {
 private:
@@ -63,29 +73,31 @@ private:
     void FindObssLocalVxs(bool with_uncertainty);
 
     double GetHighestSpeed() {
-      return *std::max_element(std::begin(v_info_.velocities), std::end(v_info_.velocities));
+        return *std::max_element(std::begin(v_info_.velocities), std::end(v_info_.velocities));
     }
 
 public:
 
     int n_node_analyzed = 0;
     double dist_from_goal = 0;
+    stats average_time;
+
     // vehicle start position and obstacles information are supposed to be taken in the same time instant.
     path_planner() = default;
 
     path_planner(VehicleInfo v_info, const std::vector<Obstacle> &obstacles, double acc_radius)
             : v_info_(std::move(v_info)) {
-      colregs_compliance = false;
-      acceptanceRadius = acc_radius;
-      for (const auto &obs: obstacles) {
-        obss_info_.obstacles.push_back(std::make_shared<Obstacle>(obs));
-      }
+        colregs_compliance = false;
+        acceptanceRadius = acc_radius;
+        for (const auto &obs: obstacles) {
+            obss_info_.obstacles.push_back(std::make_shared<Obstacle>(obs));
+        }
 
-      // Plot stuff
-      {
-        if (plotCKFile_.is_open()) plotCKFile_.close();
-        plotCKFile_.open("CKlog.txt", std::ofstream::trunc);
-      }
+        // Plot stuff
+        {
+            if (plotCKFile_.is_open()) plotCKFile_.close();
+            plotCKFile_.open("CKlog.txt", std::ofstream::trunc);
+        }
     }
 
     // Compute the path to reach the goal and fills the path's waypoints stack
@@ -95,54 +107,54 @@ public:
     bool CheckPath(const Eigen::Vector2d &vh_pos, Path path, Eigen::Vector2d &unreachable_wp);
 
     void SetVhData(VehicleInfo v_info) {
-      v_info_ = std::move(v_info);
+        v_info_ = std::move(v_info);
     }
 
     void SetObssData(const std::vector<Obstacle> &obstacles) {
-      obss_info_.obstacles.clear();
-      for (const auto &obs: obstacles) {
-        obss_info_.obstacles.push_back(std::make_shared<Obstacle>(obs));
-      }
+        obss_info_.obstacles.clear();
+        for (const auto &obs: obstacles) {
+            obss_info_.obstacles.push_back(std::make_shared<Obstacle>(obs));
+        }
     }
 
     void SetAccRadius(double acc_radius) {
-      acceptanceRadius = acc_radius;
+        acceptanceRadius = acc_radius;
     }
 
     void print(Eigen::Vector2d goal) const {
-      auto printVector = [](const std::vector<double> &vec, const std::string &sep = ",") {
-          auto last = vec.end() - 1;
-          for (auto it = vec.begin(); it != vec.end(); ++it) {
-            std::cout << *it;
-            if (it != last) {
-              std::cout << sep;
+        auto printVector = [](const std::vector<double> &vec, const std::string &sep = ",") {
+            auto last = vec.end() - 1;
+            for (auto it = vec.begin(); it != vec.end(); ++it) {
+                std::cout << *it;
+                if (it != last) {
+                    std::cout << sep;
+                }
             }
-          }
-      };
+        };
 
-      std::cout << "-----------------------\n"
-                << " Vehicle data:\n"
-                << "  colregs = " << colregs_compliance << ";\n"
-                << "  v_info.position = {" << v_info_.position.x() << ", " << v_info_.position.y() << "};\n"
-                << "  v_info.heading = {" << v_info_.heading << "};\n"
-                << "  v_info.velocities = {";
-      printVector(v_info_.velocities);
-      std::cout << "};\n"
-                << "  goal = {" << goal.x() << ", " << goal.y() << "};\n";
-               /* << "  bb_data bb_dimension;\n";
+        std::cout << "-----------------------\n"
+                  << " Vehicle data:\n"
+                  << "  colregs = " << colregs_compliance << ";\n"
+                  << "  v_info.position = {" << v_info_.position.x() << ", " << v_info_.position.y() << "};\n"
+                  << "  v_info.heading = {" << v_info_.heading << "};\n"
+                  << "  v_info.velocities = {";
+        printVector(v_info_.velocities);
+        std::cout << "};\n"
+                  << "  goal = {" << goal.x() << ", " << goal.y() << "};\n";
+        /* << "  bb_data bb_dimension;\n";
 
-      for (const auto &obs: obss_info_.obstacles) {
-        std::cout << " bb_dimension = bb_data(" << obs->bb.dim_x << ", " << obs->bb.dim_y << ", \n"
-                  << obs->bb.max_x_bow << ", " << obs->bb.max_x_stern << ", \n"
-                  << obs->bb.max_y_starboard << ", " << obs->bb.max_y_port << ", \n"
-                  << obs->bb.safety_x_bow << ", " << obs->bb.safety_x_stern << ", \n"
-                  << obs->bb.safety_y_starboard << ", " << obs->bb.safety_y_port << ", \n"
-                  << obs->bb.gap << ");\n";
-        std::cout << " obstacles.push_back(Obstacle(\"" << obs->id << "\", {"
-                  << obs->position.x() << ", " << obs->position.y() << "}, "
-                  << obs->head << ", " << obs->speed << ", " << obs->vel_dir << ", bb_dimension));\n";
+for (const auto &obs: obss_info_.obstacles) {
+ std::cout << " bb_dimension = bb_data(" << obs->bb.dim_x << ", " << obs->bb.dim_y << ", \n"
+           << obs->bb.max_x_bow << ", " << obs->bb.max_x_stern << ", \n"
+           << obs->bb.max_y_starboard << ", " << obs->bb.max_y_port << ", \n"
+           << obs->bb.safety_x_bow << ", " << obs->bb.safety_x_stern << ", \n"
+           << obs->bb.safety_y_starboard << ", " << obs->bb.safety_y_port << ", \n"
+           << obs->bb.gap << ");\n";
+ std::cout << " obstacles.push_back(Obstacle(\"" << obs->id << "\", {"
+           << obs->position.x() << ", " << obs->position.y() << "}, "
+           << obs->head << ", " << obs->speed << ", " << obs->vel_dir << ", bb_dimension));\n";
 
-      }*/
+}*/
     }
 };
 

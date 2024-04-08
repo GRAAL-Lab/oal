@@ -32,7 +32,7 @@ def set_axes_equal(ax):
     # ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 
 
-log = open("/home/samuele/graal_ws/oal/build/CL_build/CKlog.txt", "r")
+log = open("/home/samuele/graal_ws/oal/build/CKlog.txt", "r")
 # log = open("CKlog.txt", "r")
 Lines = log.readlines()
 

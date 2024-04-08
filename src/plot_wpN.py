@@ -10,6 +10,19 @@ log = open("/home/samuele/graal_ws/oal/build/WPlogN.txt", "r")
 Lines = log.readlines()
 data = {}
 
+plt.rcParams.update({
+    "grid.color": "0.5",
+    "grid.linestyle": "-",
+    "grid.linewidth": 1,
+    "lines.linewidth": 2,
+    "lines.color": "g",
+})
+
+plt.rcParams.update({'font.size': 14})
+
+
+
+
 # file = log.read()
 for line in Lines:
     line = line.strip()
@@ -66,15 +79,20 @@ for timestamp in timeinstants:
     ax.set_title('Time: ' + str(timestamp))
     # plt.xlim(7, 13)
     # plt.ylim(0, 5)
+    
+    if count == 1:
+    	ax.set_ylabel("y-coordinate [m]")
+    ax.set_xlabel("x-coordinate [m]")
+
 
     wp = data[timestamp][0]
     data[timestamp].remove(wp)
     pol_data = data[timestamp]
 
     ax.scatter(startPos[0], startPos[1], color='black', marker='o', s=50)
-    ax.text(startPos[0] - 0.6, startPos[1], "Start", ha='center', va='center', fontsize=7)
+    ax.text(startPos[0] - 5.0, startPos[1], "Start", ha='center', va='center', fontsize=12)
     ax.scatter(goalPos[0], goalPos[1], color='green', marker='x', s=50)
-    ax.text(goalPos[0] - 0.6, goalPos[1], "Goal", ha='center', va='center', fontsize=7)
+    ax.text(goalPos[0] - 5.0, goalPos[1], "Goal", ha='center', va='center', fontsize=12)
 
     wp_pos = wp["wp"]
     wps.append(wp_pos)
@@ -169,12 +187,27 @@ for timestamp in timeinstants:
                   head_width=dim_y * 0.3,
                   head_length=dim_y * 0.2, color='red')
 
-        ax.text(centroid_x - dim_y * 1.3 * math.sin(heading), centroid_y + dim_y * 1.3 * math.cos(heading),
-                polygon_data['obs'], ha='center', va='center', fontsize=10)
+
+        ax.text(centroid_x - dim_y * 2.5 * math.sin(heading), centroid_y + dim_y * 2.5 * math.cos(heading),
+                polygon_data['obs'], ha='center', va='center', fontsize=12)
         ax.axis('equal')
         # ax.axis('square')
         # ax.set_xlim(8, 12)
         ax.set_aspect('equal')
+        start, end = ax.get_xlim()
+        # Adjusting start and end integers to be multiples of 10 and close to the ends
+        start = (int(start) // 10) * 10  # Making start a multiple of 10
+        end = ((int(end) + 9) // 10) * 10  # Making end a multiple of 10, rounding up
+        
+        # Setting ticks on x-axis
+        ax.xaxis.set_ticks(np.arange(start-10, end+10, 10))
+        start, end = ax.get_ylim()
+        # Adjusting start and end integers to be multiples of 10 and close to the ends
+        start = (int(start) // 10) * 10  # Making start a multiple of 10
+        end = ((int(end) + 9) // 10) * 10  # Making end a multiple of 10, rounding up
+        
+        # Setting ticks on x-axis
+        ax.yaxis.set_ticks(np.arange(start-10, end+10, 10))
 
 plt.show()
 

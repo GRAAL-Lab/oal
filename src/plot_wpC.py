@@ -5,10 +5,21 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Polygon
 
-log = open("/home/samuele/graal_ws/oal/build/CL_build/WPlogC.txt", "r")
+log = open("/home/samuele/graal_ws/oal/build/WPlogC.txt", "r")
 # log = open("log.txt", "r")
 Lines = log.readlines()
 data = {}
+
+plt.rcParams.update({
+    "grid.color": "0.5",
+    "grid.linestyle": "-",
+    "grid.linewidth": 1,
+    "lines.linewidth": 2,
+    "lines.color": "g",
+})
+
+
+
 
 # file = log.read()
 for line in Lines:
@@ -64,6 +75,11 @@ for timestamp in timeinstants:
     count = count + 1
     ax = fig.add_subplot(1, len(data.keys()), count)
     ax.set_title('Time: ' + str(timestamp))
+    
+    if count == 1:
+    	ax.set_ylabel("y-coordinate [m]")
+    ax.set_xlabel("x-coordinate [m]")
+
     # plt.xlim(7, 13)
     # plt.ylim(0, 5)
 
@@ -72,10 +88,10 @@ for timestamp in timeinstants:
     pol_data = data[timestamp]
 
     ax.scatter(startPos[0], startPos[1], color='black', marker='o', s=50)
-    ax.text(startPos[0] - 0.6, startPos[1], "Start", ha='center', va='center', fontsize=7)
+    ax.text(startPos[0] - 5.0, startPos[1], "Start", ha='center', va='center', fontsize=12)
     ax.scatter(goalPos[0], goalPos[1], color='green', marker='x', s=50)
-    ax.text(goalPos[0] - 0.6, goalPos[1], "Goal", ha='center', va='center', fontsize=7)
-
+    ax.text(goalPos[0] - 5.0, goalPos[1], "Goal", ha='center', va='center', fontsize=12)
+    
     wp_pos = wp["wp"]
     wps.append(wp_pos)
     trace_x = []
@@ -86,7 +102,7 @@ for timestamp in timeinstants:
 
     ax.plot(trace_x, trace_y, 'r.:')
     ax.scatter(wp_pos[0], wp_pos[1], color='red', marker='o')
-
+    
     # Add polygons and their names to the plot
     for polygon_data in pol_data:
         # print(polygon_data)
@@ -168,13 +184,26 @@ for timestamp in timeinstants:
                   width=dim_y * 0.05,
                   head_width=dim_y * 0.3,
                   head_length=dim_y * 0.2, color='red')
-
-        ax.text(centroid_x - dim_y * 1.3 * math.sin(heading), centroid_y + dim_y * 1.3 * math.cos(heading),
-                polygon_data['obs'], ha='center', va='center', fontsize=10)
+                  
+        
+        ax.text(centroid_x - dim_y * 2.5 * math.sin(heading), centroid_y + dim_y * 2.5 * math.cos(heading),
+                polygon_data['obs'], ha='center', va='center', fontsize=12)
         ax.axis('equal')
         # ax.axis('square')
         # ax.set_xlim(8, 12)
         ax.set_aspect('equal')
+        start, end = ax.get_xlim()
+        #Adjusting start and end integers to be multiples of 10 and close to the ends
+        start = (int(start) // 10) * 10  # Making start a multiple of 10
+        end = ((int(end) + 9) // 10) * 10  # Making end a multiple of 10, rounding 
+        # Setting ticks on x-axis
+        ax.xaxis.set_ticks(np.arange(start-10, end+10, 10))
+        start, end = ax.get_ylim()
+        # Adjusting start and end integers to be multiples of 10 and close to the ends
+        start = (int(start) // 10) * 10  # Making start a multiple of 10
+        end = ((int(end) + 9) // 10) * 10  # Making end a multiple of 10, rounding up
+        # Setting ticks on x-axis
+        ax.yaxis.set_ticks(np.arange(start-10, end+10, 10))
 
 plt.show()
 

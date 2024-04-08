@@ -43,9 +43,9 @@ public:
     std::string plotStuff(double time);
 
     void print() const {
-      //std::cout<<id<<std::endl<< position.x()<<" "<<position.y()<<std::endl<<head<<std::endl<<speed<<std::endl;
-      std::cout << "obstacles.push_back(Obstacle(\"" << id << "\", {" << position.x() << ", " << position.y() << "}, "
-                << head << ", " << speed << ", " << vel_dir << ", bb_dimension));" << std::endl;
+        //std::cout<<id<<std::endl<< position.x()<<" "<<position.y()<<std::endl<<head<<std::endl<<speed<<std::endl;
+        std::cout << "obstacles.push_back(Obstacle(\"" << id << "\", {" << position.x() << ", " << position.y() << "}, "
+                  << head << ", " << speed << ", " << vel_dir << ", bb_dimension));" << std::endl;
     }
 
 //public:

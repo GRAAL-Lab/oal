@@ -42,45 +42,45 @@ public:
 
     Node(const TPoint &point, const std::shared_ptr<Obstacle> &obs_ptr, vx_id vx, const Node &parent_node)
             : obs_ptr(obs_ptr), vx(vx) {
-      position = point.pos;
-      time = parent_node.time + point.time;
-      SetParent(parent_node);
+        position = point.pos;
+        time = parent_node.time + point.time;
+        SetParent(parent_node);
     }
 
     Node(const Node &other) {
-      // Copy all members from 'other' to 'this'
-      position = other.position;
-      time = other.time;
-      costToReach = other.costToReach;
-      costToGoal = other.costToGoal;
-      costTotal = other.costTotal;
-      speed_to_it = other.speed_to_it;
-      obs_ptr = other.obs_ptr;
-      vx = other.vx;
-      parent = other.parent;  // assuming that shared_ptr copy is what you want
-      currentObsLimitedVxs = other.currentObsLimitedVxs;
-      overtakingObsList = other.overtakingObsList;
+        // Copy all members from 'other' to 'this'
+        position = other.position;
+        time = other.time;
+        costToReach = other.costToReach;
+        costToGoal = other.costToGoal;
+        costTotal = other.costTotal;
+        speed_to_it = other.speed_to_it;
+        obs_ptr = other.obs_ptr;
+        vx = other.vx;
+        parent = other.parent;  // assuming that shared_ptr copy is what you want
+        currentObsLimitedVxs = other.currentObsLimitedVxs;
+        overtakingObsList = other.overtakingObsList;
 
-      starting_heading = other.starting_heading;
-      distFromParent = other.distFromParent;
-      courseChangeFromParent = other.courseChangeFromParent;
+        starting_heading = other.starting_heading;
+        distFromParent = other.distFromParent;
+        courseChangeFromParent = other.courseChangeFromParent;
 
-      ignoring_obs_debug = other.ignoring_obs_debug;
-      is_final = other.is_final;
+        ignoring_obs_debug = other.ignoring_obs_debug;
+        is_final = other.is_final;
     }
 
     // Used to order nodes in set according to total cost to reach the goal
     bool operator<(const Node &other) const {
-      return costTotal < other.costTotal;
+        return costTotal < other.costTotal;
     }
 
     // Nodes are equal if position, time, speed, obs and vx are the same (small epsilon involved for position and time)
     bool operator==(const Node &other) const {
-      return (position - other.position).norm() < 0.01 &&                       // same position
-             abs(time - other.time) < 0.5 &&                                 // same time
-             obs_ptr.get() == other.obs_ptr.get() && vx == other.vx &&      // same obs and vx
-             parent->obs_ptr.get() == other.parent->obs_ptr.get() &&        // same parent obs
-             parent->vx == other.parent->vx;                                 // same parent vx
+        return (position - other.position).norm() < 0.01 &&                       // same position
+               abs(time - other.time) < 0.5 &&                                 // same time
+               obs_ptr.get() == other.obs_ptr.get() && vx == other.vx &&      // same obs and vx
+               parent->obs_ptr.get() == other.parent->obs_ptr.get() &&        // same parent obs
+               parent->vx == other.parent->vx;                                 // same parent vx
     }
 
     // Set estimated cost and total cost according to own ship speed
@@ -103,45 +103,45 @@ public:
 
     //bool HasAncestor(const Node &node) const;
 
-    bool HasSimilarIn(std::multiset<Node> &set);
+    bool HasSimilarIn(std::multiset<Node> &set, Node &similar);
 
     // Set node parent, inherit its overtakingObsList and update "alternative costs"
     void SetParent(const Node &parent_node) {
-      parent = std::make_shared<Node>(parent_node);
-      overtakingObsList = parent_node.overtakingObsList;
+        parent = std::make_shared<Node>(parent_node);
+        overtakingObsList = parent_node.overtakingObsList;
 
-      distFromParent = (position - parent->position).norm();
-      courseChangeFromParent = GetHeadingChange();
+        distFromParent = (position - parent->position).norm();
+        courseChangeFromParent = GetHeadingChange();
 
     }
 
     double GetHeadingChange() {
-      if (parent != nullptr) {
-        Eigen::Vector2d t1 = position - parent->position;
-        if (parent->parent != nullptr) {
-          Eigen::Vector2d t2 = parent->position - parent->parent->position;
-          return std::acos(t1.normalized().dot(t2.normalized())); // [0, pi]
-        } else {
-          return abs(parent->starting_heading - std::acos(t1.normalized().dot(Eigen::Vector2d(1, 0))));
+        if (parent != nullptr) {
+            Eigen::Vector2d t1 = position - parent->position;
+            if (parent->parent != nullptr) {
+                Eigen::Vector2d t2 = parent->position - parent->parent->position;
+                return std::acos(t1.normalized().dot(t2.normalized())); // [0, pi]
+            } else {
+                return abs(parent->starting_heading - std::acos(t1.normalized().dot(Eigen::Vector2d(1, 0))));
+            }
         }
-      }
-      return 0;
+        return 0;
     }
 
     void print() const {
-      std::cout << std::setprecision(3);
-      Node node = *this;
-      if (node.parent != nullptr) std::cout << std::endl << "  Trace: " << std::endl;
-      while (node.parent != nullptr) {
-        std::cout << "   - time: " << node.time << "  Pos: " << node.position.x() << " " << node.position.y();
-        if (ignoring_obs_debug) std::cout << "  !!! ignoring an obs for it is giving way: " << std::endl;
-        if (node.obs_ptr != nullptr) {
-          std::cout << "   Obs: " << node.obs_ptr->id << "/" << (vx_id) node.vx << "  reaching speed: "
-                    << node.speed_to_it;
+        std::cout << std::setprecision(3);
+        Node node = *this;
+        if (node.parent != nullptr) std::cout << std::endl << "  Trace: " << std::endl;
+        while (node.parent != nullptr) {
+            std::cout << "   - time: " << node.time << "  Pos: " << node.position.x() << " " << node.position.y();
+            if (ignoring_obs_debug) std::cout << "  !!! ignoring an obs for it is giving way: " << std::endl;
+            if (node.obs_ptr != nullptr) {
+                std::cout << "   Obs: " << node.obs_ptr->id << "/" << (vx_id) node.vx << "  reaching speed: "
+                          << node.speed_to_it;
+            }
+            std::cout << std::endl;
+            node = *node.parent;
         }
-        std::cout << std::endl;
-        node = *node.parent;
-      }
     }
 
 };
