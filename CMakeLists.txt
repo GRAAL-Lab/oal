@@ -14,8 +14,18 @@ set(CMAKE_CXX_STANDARD 17)
 #endif()
 
 #if(NOT CMAKE_BUILD_TYPE)
-set(CMAKE_BUILD_TYPE RelWithDebInfo)
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
 #endif()
+
+# Add files in the tree of "Projects" view in QtCreator
+file(GLOB_RECURSE SOURCE_FILES
+    "test/*.cc"
+    "include/*.hpp"
+)
+add_custom_target(.ProjectFiles. SOURCES ${SOURCE_FILES})
+
 
 
 option(BUILD_TESTS "Compile tests" OFF)
@@ -71,7 +81,6 @@ install(EXPORT oalConfig DESTINATION share/oal/cmake)
 
 # This makes the project importable from the build directory
 export(TARGETS oal FILE oalConfig.cmake)
-
 
 if (BUILD_TESTS)
     # Every library has unit tests, of course

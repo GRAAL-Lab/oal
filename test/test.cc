@@ -50,15 +50,15 @@ struct Entry {
 };
 
 int main(int, char **) {
-    bool loop_perf = false;
-    bool find_case = true;
+    bool loop_perf = true;
+    bool find_case = false;
     if (loop_perf) {
 
-        int test_number_obs = 10;
-        int test_number_speeds = 10;
-        int runs = 500;
+        int test_number_obs = 5;
+        int test_number_speeds = 5;
+        int runs = 5000;
 
-        bool colregs = false;
+        bool colregs = true;
         bool colregs_compare = false;
         char input;
         std::cout << "Colregs compare [N/y]: ";
