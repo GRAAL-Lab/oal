@@ -85,52 +85,51 @@ struct Path {
         metrics.estimatedTime = est_time;
     }
 
-    void print(bool local_wp = false) {
-        std::cout << "Path:\n"
-                  << " Length: " << metrics.totDistance << " meters\n"
-                  << " Total course change: " << metrics.totHeadingChange << " radians\n"
-                  << " Max course change: " << metrics.maxHeadingChange << " radians" << std::endl;
+    std::string print(bool local_wp = false) const {
+        std::ostringstream oss;
+
+        oss << "Path:\n"
+            << " Length: " << metrics.totDistance << " meters\n"
+            << " Total course change: " << metrics.totHeadingChange << " radians\n"
+            << " Max course change: " << metrics.maxHeadingChange << " radians\n";
 
         if (local_wp) {
             Path temp = *this;
-            std::cout << " Waypoint list:" << std::endl;
+            oss << " Waypoint list:\n";
 
             while (!temp.empty()) {
                 auto node = temp.top();
-                std::cout << "   - time: " << temp.top().time << "  Pos: " << node.position.x() << " "
-                          << node.position.y();
-                //std::cout << temp.top().time << std::setw(5) << node.position.x() << std::setw(5) << node.position.y() << std::setw(5);
+                oss << "   - time: " << node.time << "  Pos: " << node.position.x() << " " << node.position.y();
+
                 if (node.obs_ptr != nullptr) {
                     switch (node.vx) {
                         case 0:
-                            std::cout << "   Obs: " << node.obs_ptr->id << "/FR reaching speed: " << node.speed_to_it;
-                            //std::cout << node.obs_ptr->id << std::setw(4) << "FR" << std::setw(4) << node.speed_to_it;
+                            oss << "   Obs: " << node.obs_ptr->id << "/FR reaching speed: " << node.speed_to_it;
                             break;
                         case 1:
-                            std::cout << "   Obs: " << node.obs_ptr->id << "/FL reaching speed: " << node.speed_to_it;
-                            //std::cout << node.obs_ptr->id << std::setw(4) << "FL" << std::setw(4) << node.speed_to_it;
+                            oss << "   Obs: " << node.obs_ptr->id << "/FL reaching speed: " << node.speed_to_it;
                             break;
                         case 2:
-                            std::cout << "   Obs: " << node.obs_ptr->id << "/RR reaching speed: " << node.speed_to_it;
-                            //std::cout << node.obs_ptr->id << std::setw(4) << "RR" << std::setw(4) << node.speed_to_it;
+                            oss << "   Obs: " << node.obs_ptr->id << "/RR reaching speed: " << node.speed_to_it;
                             break;
                         case 3:
-                            std::cout << "   Obs: " << node.obs_ptr->id << "/RL reaching speed: " << node.speed_to_it;
-                            //std::cout << node.obs_ptr->id << std::setw(4) << "RL" << std::setw(4) << node.speed_to_it;
+                            oss << "   Obs: " << node.obs_ptr->id << "/RL reaching speed: " << node.speed_to_it;
                             break;
                         case 5:
-                            std::cout << "   Obs: " << node.obs_ptr->id << "/W reaching speed: " << node.speed_to_it;
-                            //std::cout << node.obs_ptr->id << std::setw(4) << "within" << std::setw(4) << node.speed_to_it;
+                            oss << "   Obs: " << node.obs_ptr->id << "/W reaching speed: " << node.speed_to_it;
                             break;
                         default:
-                            std::cout << " <Obs has undefined vx ?!?!> " << std::endl;
+                            oss << " <Obs has undefined vx ?!?!>\n";
                     }
                 }
-                std::cout << std::endl;
+                oss << "\n";
                 temp.pop();
             }
         }
+
+        return oss.str();
     }
+
 
 };
 

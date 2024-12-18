@@ -30,6 +30,8 @@ struct stats{
 
 class path_planner {
 private:
+    bool plotFlag = false;
+    
     VehicleInfo v_info_;
     ObstaclesInfo obss_info_;
     bool colregs_compliance;

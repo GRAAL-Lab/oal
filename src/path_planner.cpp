@@ -5,6 +5,7 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
     path = Path();
     colregs_compliance = colregs;
     // Plot stuff
+    if(plotFlag)
     {
         if (plotWpsFile_.is_open()) {
             plotWpsFile_.close();
@@ -28,7 +29,7 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
     // Set obss local vxs
     FindObssLocalVxs(true);
     // Plot stuff
-    {
+    if(plotFlag){
         plotWpsFile_ << "Time_" << 0 << std::endl;
         plotWpsFile_ << "Waypoint_" << v_info_.position.x() << "_" << v_info_.position.y() << std::endl;
         for (const obs_ptr &obs_ptr: obss_info_.obstacles) {
@@ -38,7 +39,7 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
 
     // Root node setup
     if (!RootSetup(goal_position, open_set)) {
-        std::cout << " Cannot find way out of bb(s) " << std::endl;
+        std::cerr << "OAL: Cannot find way out of bb(s) " << std::endl;
         return false;
     }
     // Initialize reachable with root
@@ -60,7 +61,7 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
         //current.print();
 
         if (open_set.size() > 50000 && (open_set.size() % 10000 == 0)) {
-            std::cout << "Number of nodes analyzed: " << n_node_analyzed << ", open set size: " << open_set.size()
+            std::cerr << "OAL: Number of nodes analyzed: " << n_node_analyzed << ", open set size: " << open_set.size()
                       << ", close set size: " << close_set.size() << std::endl;
         }
 
@@ -134,11 +135,11 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
     if (!found || current.time == 0) {
         // No path found OR GOAL == START
         if (current.parent == nullptr) {
-            std::cout << " Cannot find a single viable node " << std::endl;
+            std::cerr << "OAL: Cannot find a single viable node " << std::endl;
             return false; // still in start
         }
 
-        std::cout << " OAL search did not find any path to goal, returning best estimate if any " << std::endl;
+        std::cerr << "OAL: Search did not find any path to goal, returning best estimate if any " << std::endl;
         // Find the node with the smallest est. time to goal among the analyzed ones
         Node best_goal = current;
         while (!reachable_full_set.empty()) {
@@ -150,7 +151,7 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
         }
 
         if ((best_goal.position - v_info_.position).norm() < acceptanceRadius) {
-            std::cout << " The most close node to goal is basically the starting point " << std::endl;
+            std::cerr << "OAL: The most close node to goal is basically the starting point " << std::endl;
             return false; // new goal is starting point
         }
         current = best_goal;
@@ -496,7 +497,7 @@ void path_planner::BuildPath(Node &current, Path &path) {    // Build path from 
 
     // goal is supposed to have at least one root
     path.waypoints.push(current);
-    {
+    if(plotFlag){
         plotWpsFile_ << "Time_" << current.time << std::endl;
         plotWpsFile_ << "Waypoint_" << current.position(0) << "_" << current.position(1) << std::endl;
         for (const obs_ptr &obs_ptr: obss_info_.obstacles) {
@@ -510,7 +511,7 @@ void path_planner::BuildPath(Node &current, Path &path) {    // Build path from 
         current = *ptr;
         path.waypoints.push(current);
         //  Plot stuff
-        {
+        if(plotFlag){
             plotWpsFile_ << "Time_" << current.time << std::endl;
             plotWpsFile_ << "Waypoint_" << current.position(0) << "_" << current.position(1) << std::endl;
             for (const obs_ptr &obs_ptr: obss_info_.obstacles) {
@@ -601,7 +602,7 @@ bool path_planner::IsInAnyBB(TPoint time_point,
 bool path_planner::CheckPath(const Eigen::Vector2d &vh_pos, Path path, Eigen::Vector2d &unreachable_wp) {
     // the waypoint should be just the ones left to reach, not the whole path returned by the library
     if (path.empty()) {
-        std::cout << " PATH IS EMPTY -> CHECK = FALSE" << std::endl;
+        std::cerr << "OAL: PATH IS EMPTY -> CHECK = FALSE" << std::endl;
         return false;
     }
 
@@ -646,7 +647,7 @@ bool path_planner::RootSetup(const Eigen::Vector2d &goal_position, std::multiset
     if (!surrounding_obs->empty()) {
         if (surrounding_obs->size() > 1) {
             // The starting point is in a number of different bb, at the moment no solution
-            std::cout << "Start in multiple bb.. abort." << std::endl;
+            std::cerr << "OAL: Start in multiple bb -> abort." << std::endl;
             return false;
         }
         root.obs_ptr = surrounding_obs->at(0);
