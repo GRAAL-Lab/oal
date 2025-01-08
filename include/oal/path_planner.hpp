@@ -8,9 +8,9 @@
 #include <set>
 #include <iomanip> //tables
 #include <eigen3/Eigen/Eigen>
-#include "oal/data_structs/misc.hpp"
+#include "oal/misc.hpp"
 #include "oal/helper_functions.hpp"
-#include "oal/data_structs/path.hpp"
+#include "oal/path.hpp"
 #include <chrono>
 
 #define MAX_TIME 10000

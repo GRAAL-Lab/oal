@@ -220,7 +220,7 @@ bool path_planner::CheckFinal(const Node &start, Node goal, std::multiset<Node> 
 
 bool path_planner::CheckColreg(const Node &start, Node &goal) const {
     // Check only if colregs compliance is requested
-    if (!colregs_compliance || goal.obs_ptr->speed <= 0.01) {
+    if (!colregs_compliance || goal.obs_ptr->velocity.speed <= 0.01) {
         return true;
     }
 
@@ -239,7 +239,7 @@ bool path_planner::CheckColreg(const Node &start, Node &goal) const {
     }
     // Get the approaching angle of own ship wrt target ship
     Eigen::Vector2d path = goal.position - start.position;
-    double theta = GetBearing(path, goal.obs_ptr->head);
+    double theta = GetBearing(path, goal.obs_ptr->pose.heading);
     // Check colregs depending on situation
     if (abs(theta) <= HeadOnAngle) {
         // head on
@@ -322,7 +322,7 @@ bool path_planner::CheckCollision(const Node &start, Node &goal,
         std::vector<Vertex> vxs_abs;
         obs.FindAbsVxs(start.time, vxs_abs);
         // Compute obstacle direction in x-y-time
-        Eigen::Vector3d bb_direction(obs.speed * cos(obs.vel_dir), obs.speed * sin(obs.vel_dir), 1);
+        Eigen::Vector3d bb_direction(obs.velocity.speed * cos(obs.velocity.angle), obs.velocity.speed * sin(obs.velocity.angle), 1);
         //bb_direction.normalize(); no, because multiplied by t' it returns the position at time t'
 
         bool isDepartingObs = false;
@@ -352,9 +352,9 @@ bool path_planner::CheckCollision(const Node &start, Node &goal,
         // Colregs check (ignore crossing from right TS)
         if (colregs_compliance) {
             // Angle between
-            double theta = GetBearing(Eigen::Vector2d(path.x(), path.y()), obs.head);
+            double theta = GetBearing(Eigen::Vector2d(path.x(), path.y()), obs.pose.heading);
             if (theta > HeadOnAngle && theta < OvertakingAngle && !obs_ptr->higher_priority &&
-                obs_ptr->speed > OBSTACLE_STATIC_SPEED_THRESHOLD) {
+                obs_ptr->velocity.speed > OBSTACLE_STATIC_SPEED_THRESHOLD) {
                 // crossing from right, stand on
                 goal.ignoring_obs_debug = true;
                 continue;
@@ -529,12 +529,12 @@ void path_planner::BuildPath(Node &current, Path &path) {    // Build path from 
 void path_planner::FindInterceptPoints(const Node &start, Obstacle &obstacle, double vh_speed,
                                        std::vector<Vertex> visible_vxs, std::vector<Vertex> &reachable_vxs) {
     //std::vector<Vertex> vxs;
-    Eigen::Vector3d bb_timeDirection(obstacle.speed * cos(obstacle.vel_dir), obstacle.speed * sin(obstacle.vel_dir), 1);
+    Eigen::Vector3d bb_timeDirection(obstacle.velocity.speed * cos(obstacle.velocity.angle), obstacle.velocity.speed * sin(obstacle.velocity.angle), 1);
     for (auto i = 0; i < 4; i++) {
         if (visible_vxs[i].isVisible) {
             std::vector<double> t_instants;
             Eigen::Vector2d vertex_vehicle = visible_vxs[i].position - start.position;
-            if (obstacle.speed < 0.001) { // TODO choose value
+            if (obstacle.velocity.speed < 0.001) { // TODO choose value
                 t_instants.push_back(vertex_vehicle.norm() / vh_speed);
             } else {
                 double det = pow(vh_speed, 2) + 1;
@@ -564,8 +564,8 @@ void path_planner::FindInterceptPoints(const Node &start, Obstacle &obstacle, do
             for (double t: t_instants) {
                 Eigen::Vector3d point_3d = Get3dPos(visible_vxs[i]) + bb_timeDirection * t;
                 TPoint intercept_point;
-                intercept_point.pos.x() = point_3d.x();
-                intercept_point.pos.y() = point_3d.y();
+                intercept_point.position.x() = point_3d.x();
+                intercept_point.position.y() = point_3d.y();
                 intercept_point.time = point_3d.z();
                 std::shared_ptr<std::vector<obs_ptr>> surrounding_obs(new std::vector<obs_ptr>);
                 bool isInAnyBB = IsInAnyBB(intercept_point, surrounding_obs);
@@ -672,7 +672,13 @@ void path_planner::FindObssLocalVxs(bool with_uncertainty) {
     // Set the bounding box dimension based on the vehicle start distance from the obstacles
     for (const obs_ptr &obs: obss_info_.obstacles) {
         obs->uncertainty = with_uncertainty;
-        obs->FindLocalVxs(v_info_.position);
+        //obs->FindLocalVxs(v_info_.position);
+
+        TPoint time_point = {v_info_.position, 0};
+        // Distance obs-vehicle wrt obs frame, on x and y
+        Eigen::Vector2d bodyObs_vhPos = obs->GetProjectionInLocalFrame(time_point);
+        
+        obs->ComputeLocalVxsBasedOnVhDist(bodyObs_vhPos, with_uncertainty);
     }
 }
 

@@ -8,7 +8,7 @@
 #include <stack>
 //#include <iomanip> //tables
 //#include "oal/data_structs/obstacle.hpp"
-#include "oal/data_structs/node.hpp"
+#include "oal/node.hpp"
 
 struct Metrics {
     //double heading = 0; //used only for first node to compute heading changes

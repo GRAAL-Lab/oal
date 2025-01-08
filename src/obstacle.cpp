@@ -1,51 +1,57 @@
-#include "oal/data_structs/obstacle.hpp"
+#include "oal/obstacle.hpp"
 #include "oal/helper_functions.hpp"
 
-void Obstacle::SetSize(double dist_x, double dist_y, double theta,
-                       double &dim_x_bow, double &dim_x_stern, double &dim_y_starboard, double &dim_y_port) const {
+void Obstacle::ComputeLocalVxsBasedOnVhDist(const Eigen::Vector2d &bodyObs_vhPos, bool compensate_localization_error) {
+    double dist_x = abs(bodyObs_vhPos.x());
+    double dist_y = abs(bodyObs_vhPos.y());
+    double theta = atan2(bodyObs_vhPos.y(), bodyObs_vhPos.x()); // error for (0,0)
+
     bool isAhead = (abs(theta) <= M_PI / 2);
     bool isStarboard = (theta < 0);
 
-    double bb_ratio_x;
-    double bb_ratio_y;
-    double bb_ratio_x_safety;
-    double bb_ratio_y_safety;
 
+    /* Actual bb vxs computation:
+        - Keep max bb on the side opposite to the ASV approaching ones
+        - Select the approaching side max and safety (in dim_*_max and dim_*_safety)
+        - Choose the latter values depending on the ASV distance from the obstacle
+    */
+    double dim_x_bow, dim_x_stern, dim_y_starboard, dim_y_port; 
+    double dim_x_max, dim_x_safety, dim_y_max, dim_y_safety;
     if (isAhead) {
-        dim_x_stern = bb.dim_x / 2 * bb.max_x_stern;
-        bb_ratio_x = bb.max_x_bow;
-        bb_ratio_x_safety = bb.safety_x_bow;
+        dim_x_stern = bb_data.max_x_stern;
+        dim_x_max = bb_data.max_x_bow;
+        dim_x_safety = bb_data.safety_x_bow;
     } else {
-        dim_x_bow = bb.dim_x / 2 * bb.max_x_bow;
-        bb_ratio_x = bb.max_x_stern;
-        bb_ratio_x_safety = bb.safety_x_stern;
+        dim_x_bow = bb_data.max_x_bow;
+        dim_x_max = bb_data.max_x_stern;
+        dim_x_safety = bb_data.safety_x_stern;
     }
 
     if (isStarboard) {
-        dim_y_port = bb.dim_y / 2 * bb.max_y_port;
-        bb_ratio_y = bb.max_y_starboard;
-        bb_ratio_y_safety = bb.safety_y_starboard;
+        dim_y_port = bb_data.max_y_port;
+        dim_y_max = bb_data.max_y_starboard;
+        dim_y_safety = bb_data.safety_y_starboard;
     } else {
-        dim_y_starboard = bb.dim_y / 2 * bb.max_y_starboard;
-        bb_ratio_y = bb.max_y_port;
-        bb_ratio_y_safety = bb.safety_y_port;
+        dim_y_starboard = bb_data.max_y_starboard;
+        dim_y_max = bb_data.max_y_port;
+        dim_y_safety = bb_data.max_y_starboard;
     }
 
-    bool x_safety = (dist_x <= bb.dim_x / 2 * bb_ratio_x_safety);
-    bool y_safety = (dist_y <= bb.dim_y / 2 * bb_ratio_y_safety);
-    bool x_max = (dist_x >= bb.dim_x / 2 * bb_ratio_x);
-    bool y_max = (dist_y >= bb.dim_y / 2 * bb_ratio_y);
-    bool x_between = !x_safety && !x_max;
-    bool y_between = !y_safety && !y_max;
+    bool x_safety = (dist_x <= dim_x_safety); //ASV inside safety
+    bool y_safety = (dist_y <= dim_y_safety); //ASV inside safety
+    bool x_max = (dist_x >= dim_x_max); //ASV outside max
+    bool y_max = (dist_y >= dim_y_max); //ASV outside max
+    bool x_between = !x_safety && !x_max; //ASV in between
+    bool y_between = !y_safety && !y_max; //ASV in between
 
-    double bb_dim_x = bb.dim_x / 2 * bb_ratio_x;
-    double bb_dim_y = bb.dim_y / 2 * bb_ratio_y;
-
+    // Selection of the ASV approaching side bb size
+    double bb_dim_x = dim_x_max;
+    double bb_dim_y = dim_y_max;
     if (x_safety && !y_max) {
-        bb_dim_x = bb.dim_x / 2 * bb_ratio_x_safety;
+        bb_dim_x = dim_x_safety;
     }
     if (y_safety && !x_max) {
-        bb_dim_y = bb.dim_y / 2 * bb_ratio_y_safety;
+        bb_dim_y = dim_y_safety;
     }
 
     if (y_between && !x_max) {
@@ -66,45 +72,34 @@ void Obstacle::SetSize(double dist_x, double dist_y, double theta,
         dim_y_port = bb_dim_y;
     }
 
-    if (!uncertainty) {
-        dim_x_stern -= bb.gap;
-        dim_x_bow -= bb.gap;
-        dim_y_port -= bb.gap;
-        dim_y_starboard -= bb.gap;
+    if (!compensate_localization_error) {
+        dim_x_stern -= bb_data.reductionWhileCheckingPath;
+        dim_x_bow -= bb_data.reductionWhileCheckingPath;
+        dim_y_port -= bb_data.reductionWhileCheckingPath;
+        dim_y_starboard -= bb_data.reductionWhileCheckingPath;
     }
+    // Find the local vertexes position
+    vxs.emplace_back(FR, Eigen::Vector2d(dim_x_bow, -dim_y_starboard));
+    vxs.emplace_back(FL, Eigen::Vector2d(dim_x_bow, dim_y_port));
+    vxs.emplace_back(RR, Eigen::Vector2d(-dim_x_stern, -dim_y_starboard));
+    vxs.emplace_back(RL, Eigen::Vector2d(-dim_x_stern, dim_y_port));
 }
 
 void Obstacle::FindAbsVxs(double time, std::vector<Vertex> &vxs_abs) {
-    Eigen::Vector2d current_obs_position = ComputePosition(*this, time);
+    // Eigen::Vector2d current_obs_position = ComputePosition(time);
     for (const Vertex &vx: vxs) {
-        Vertex vx_abs;
-        vx_abs.id = vx.id;
-        Eigen::Rotation2D<double> rotation(head);
-        vx_abs.position = current_obs_position + rotation * vx.position;
+        Vertex vx_abs = vx;
+        //vx_abs.id = vx.id;
+        Eigen::Rotation2D<double> rotation(pose.heading);
+        vx_abs.position = pose.position + rotation * vx.position;
         vxs_abs.push_back(vx_abs);
     }
 }
 
-void Obstacle::FindLocalVxs(const Eigen::Vector2d &vhPos) {
-    // Distance obs-vehicle wrt obs frame, on x and y
-    Eigen::Vector2d bodyObs_vhPos = GetProjectionInObsFrame(vhPos, *this, 0);
-
-    double dist_x = abs(bodyObs_vhPos.x());
-    double dist_y = abs(bodyObs_vhPos.y());
-    double theta = atan2(bodyObs_vhPos.y(), bodyObs_vhPos.x()); // error for (0,0)
-    double bb_dim_x_bow, bb_dim_x_stern, bb_dim_y_starboard, bb_dim_y_port;
-    // asymmetric bb x dimension computation
-    SetSize(dist_x, dist_y, theta, bb_dim_x_bow, bb_dim_x_stern, bb_dim_y_starboard, bb_dim_y_port);
-    // Find the local vertexes position
-    vxs.emplace_back(FR, Eigen::Vector2d(bb_dim_x_bow, -bb_dim_y_starboard));
-    vxs.emplace_back(FL, Eigen::Vector2d(bb_dim_x_bow, bb_dim_y_port));
-    vxs.emplace_back(RR, Eigen::Vector2d(-bb_dim_x_stern, -bb_dim_y_starboard));
-    vxs.emplace_back(RL, Eigen::Vector2d(-bb_dim_x_stern, bb_dim_y_port));
-}
 
 Eigen::Vector2d Obstacle::GetProjectionInLocalFrame(TPoint &time_point) {
-    Eigen::Vector2d element_obs = time_point.pos - ComputePosition(*this, time_point.time);
-    Eigen::Rotation2D<double> rotation(head);
+    Eigen::Vector2d element_obs = time_point.position - ComputePosition(*this, time_point.time);
+    Eigen::Rotation2D<double> rotation(pose.heading);
     return rotation.inverse() * element_obs;
 }
 
@@ -125,23 +120,23 @@ bool Obstacle::IsInBB(TPoint &time_point) {
 
 std::string Obstacle::plotStuff(double time) {
     std::ostringstream stream;
-    stream << "Obs_" << id << std::endl;
-    Eigen::Vector2d abs_position = ComputePosition(*this, time);
-    stream << "Position_" << abs_position.x() << "_" << abs_position.y() << std::endl;
-    stream << "Heading_" << head << std::endl;
-    stream << "Vel_" << vel_dir << std::endl;
-    stream << "Dimx_" << bb.dim_x << std::endl;
-    stream << "Dimy_" << bb.dim_y << std::endl;
-    stream << "Safety_" << bb.safety_x_bow << "_" << bb.safety_x_stern << "_" << bb.safety_y_starboard << "_"
-           << bb.safety_y_port << std::endl;
-    stream << "Max_" << bb.max_x_bow << "_" << bb.max_x_stern << "_" << bb.max_y_starboard << "_" << bb.max_y_port
-           << std::endl;
-    std::vector<Vertex> vxs_abs;
-    FindAbsVxs(time, vxs_abs);
-    for (Vertex &vx: vxs_abs) {
-        stream << "Vx_" << vx.position.x() << "_" << vx.position.y() << std::endl;
-    }
-    //std::cout << vxs_abs[wp.vx].position.x() << " " << vxs_abs[wp.vx].position.y() << " _ "  << std::endl;
-    stream << "-" << std::endl;
+    // stream << "Obs_" << id << std::endl;
+    // Eigen::Vector2d abs_position = ComputePosition(*this, time);
+    // stream << "Position_" << abs_position.x() << "_" << abs_position.y() << std::endl;
+    // stream << "Heading_" << head << std::endl;
+    // stream << "Vel_" << vel_dir << std::endl;
+    // stream << "Dimx_" << bb.dim_x << std::endl;
+    // stream << "Dimy_" << bb.dim_y << std::endl;
+    // stream << "Safety_" << bb.safety_x_bow << "_" << bb.safety_x_stern << "_" << bb.safety_y_starboard << "_"
+    //        << bb.safety_y_port << std::endl;
+    // stream << "Max_" << bb.max_x_bow << "_" << bb.max_x_stern << "_" << bb.max_y_starboard << "_" << bb.max_y_port
+    //        << std::endl;
+    // std::vector<Vertex> vxs_abs;
+    // FindAbsVxs(time, vxs_abs);
+    // for (Vertex &vx: vxs_abs) {
+    //     stream << "Vx_" << vx.position.x() << "_" << vx.position.y() << std::endl;
+    // }
+    // //std::cout << vxs_abs[wp.vx].position.x() << " " << vxs_abs[wp.vx].position.y() << " _ "  << std::endl;
+    // stream << "-" << std::endl;
     return stream.str();
 }

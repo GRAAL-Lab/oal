@@ -4,7 +4,7 @@
 
 #include <utility>
 
-#include "oal/data_structs/tpoint.hpp"
+#include "oal/data_structs.hpp"
 
 // Vertex indexes map
 enum vx_id {

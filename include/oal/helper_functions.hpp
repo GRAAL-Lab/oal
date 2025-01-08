@@ -1,14 +1,14 @@
 #ifndef HELPER_HPP
 #define HELPER_HPP
 
-#include "oal/data_structs/misc.hpp"
-#include "oal/data_structs/obstacle.hpp"
+#include "oal/misc.hpp"
+#include "oal/obstacle.hpp"
 #include <set>
 
 template<typename T>
 Eigen::Vector2d ComputePosition(T &element, double time) {
-    Eigen::Vector2d shift(element.speed * time * cos(element.vel_dir), element.speed * time * sin(element.vel_dir));
-    return element.position + shift;
+    Eigen::Vector2d shift(element.velocity.speed * time * cos(element.velocity.angle), element.velocity.speed * time * sin(element.velocity.angle));
+    return element.pose.position + shift;
 }
 
 template<typename T>

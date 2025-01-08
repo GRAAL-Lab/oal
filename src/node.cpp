@@ -1,4 +1,4 @@
-#include "oal/data_structs/node.hpp"
+#include "oal/node.hpp"
 #include "oal/helper_functions.hpp"
 
 void Node::UpdateCosts(const Eigen::Vector2d &goal, double highest_speed, double rot_speed) {

@@ -7,8 +7,8 @@
 #include <iostream> //debug
 #include <set>
 #include <iomanip>
-#include "oal/data_structs/vertex.hpp"
-#include "oal/data_structs/obstacle.hpp"
+#include "oal/vertex.hpp"
+#include "oal/obstacle.hpp"
 
 
 class Node {
@@ -42,7 +42,7 @@ public:
 
     Node(const TPoint &point, const std::shared_ptr<Obstacle> &obs_ptr, vx_id vx, const Node &parent_node)
             : obs_ptr(obs_ptr), vx(vx) {
-        position = point.pos;
+        position = point.position;
         time = parent_node.time + point.time;
         SetParent(parent_node);
     }
