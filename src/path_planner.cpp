@@ -51,6 +51,8 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
         n_node_analyzed++;
         current = *open_set.begin();
         open_set.erase(open_set.begin());
+
+        // std::cerr<<"--"<<current.speed_to_it<<"\n";
         /*if(current.parent != nullptr){
             if (current.parent->vx == RL && current.parent->obs_ptr->id == "2" && current.vx == RR  && current.obs_ptr->id == "1" ) std::cout<<"uuu\n";
         }
@@ -60,10 +62,10 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
         //std::cout<<"********\n";
         //current.print();
 
-        if (open_set.size() > 50000 && (open_set.size() % 10000 == 0)) {
-            std::cerr << "OAL: Number of nodes analyzed: " << n_node_analyzed << ", open set size: " << open_set.size()
-                      << ", close set size: " << close_set.size() << std::endl;
-        }
+        // if (open_set.size() > 50000 && (open_set.size() % 10000 == 0)) {
+        //     std::cerr << "OAL: Number of nodes analyzed: " << n_node_analyzed << ", open set size: " << open_set.size()
+        //               << ", close set size: " << close_set.size() << std::endl;
+        // }
 
         // Check if goal is reachable
         if (CheckFinal(current, goal, open_set, reachable_full_set)) {
@@ -77,6 +79,7 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
             obs.FindAbsVxs(current.time, visible_vxs); //Find vertexes in abs frame
             current.FindVisibilityVxs(obs, visible_vxs);
             for (double &speed: v_info_.velocities) {
+                
                 auto start_time = std::chrono::system_clock::now();
                 FindInterceptPoints(current, obs, speed, visible_vxs,
                                     reachable_vxs); //Compute when every visible vertex is intercepted

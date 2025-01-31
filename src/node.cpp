@@ -206,16 +206,18 @@ void Node::FindExitVxs(std::vector<vx_id> &allowedVxs) const {
 
 bool Node::HasSimilarIn(std::multiset<Node> &set, Node &similar) {
     for (auto node_it = set.begin(); node_it != set.end(); ++node_it) {
-        bool isSimilar = ((position - node_it->position).norm() < 0.5 && (time - node_it->time) < 0.1 &&
-                          obs_ptr.get() == node_it->obs_ptr.get() && vx == node_it->vx);
+        bool isSimilar = ((position - node_it->position).norm() < 0.5 && 
+                          std::abs((time - node_it->time)) < 0.1 &&
+                          obs_ptr.get() == node_it->obs_ptr.get() && 
+                          vx == node_it->vx);
         if (isSimilar) {
             similar = *node_it;
-            /*node_it->print();*/
             return true;
         }
     }
     return false;
 }
+
 
 
 

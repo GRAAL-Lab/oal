@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 #if(NOT CMAKE_BUILD_TYPE)
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE debug)
 endif()
 #endif()
 
@@ -28,7 +28,7 @@ add_custom_target(.ProjectFiles. SOURCES ${SOURCE_FILES})
 
 
 
-option(BUILD_TESTS "Compile tests" OFF)
+option(BUILD_TESTS "Compile tests" ON)
 
 add_library(oal SHARED
         src/path_planner.cpp
@@ -84,7 +84,7 @@ export(TARGETS oal FILE oalConfig.cmake)
 
 if (BUILD_TESTS)
     # Every library has unit tests, of course
-    add_executable(oal_test test/test.cc)
+    add_executable(oal_test test/specific.cc)
 
     target_link_libraries(oal_test oal)
 

@@ -83,6 +83,38 @@ void Obstacle::ComputeLocalVxsBasedOnVhDist(const Eigen::Vector2d &bodyObs_vhPos
     vxs.emplace_back(FL, Eigen::Vector2d(dim_x_bow, dim_y_port));
     vxs.emplace_back(RR, Eigen::Vector2d(-dim_x_stern, -dim_y_starboard));
     vxs.emplace_back(RL, Eigen::Vector2d(-dim_x_stern, dim_y_port));
+
+    // std::cerr << "-------------------------\n Case determination:\n";
+    // std::cerr << "Distances:\n";
+    // std::cerr << "  dist_x: " << dist_x << "\n";
+    // std::cerr << "  dist_y: " << dist_y << "\n";
+    // std::cerr << "  isAhead: " << (isAhead ? "true" : "false") << "\n";
+    // std::cerr << "  isStarboard: " << (isStarboard ? "true" : "false") << "\n";
+
+    // std::cerr << "Dimensions:\n";
+    // std::cerr << "  dim_x_bow: " << dim_x_bow << "\n";
+    // std::cerr << "  dim_x_stern: " << dim_x_stern << "\n";
+    // std::cerr << "  dim_y_starboard: " << dim_y_starboard << "\n";
+    // std::cerr << "  dim_y_port: " << dim_y_port << "\n";
+
+    // std::cerr << "Safety and max checks:\n";
+    // std::cerr << "  x_safety: " << (x_safety ? "true" : "false") << "\n";
+    // std::cerr << "  y_safety: " << (y_safety ? "true" : "false") << "\n";
+    // std::cerr << "  x_max: " << (x_max ? "true" : "false") << "\n";
+    // std::cerr << "  y_max: " << (y_max ? "true" : "false") << "\n";
+    // std::cerr << "  x_between: " << (x_between ? "true" : "false") << "\n";
+    // std::cerr << "  y_between: " << (y_between ? "true" : "false") << "\n";
+
+    // std::cerr << "Selected dimensions:\n";
+    // std::cerr << "  bb_dim_x: " << bb_dim_x << "\n";
+    // std::cerr << "  bb_dim_y: " << bb_dim_y << "\n";
+
+    // std::cerr << "Vertex positions (vxs):\n";
+    // for (const auto& vertex : vxs) {
+    //     std::cerr << "  Vertex: (" 
+    //             << vertex.position.x() << ", " << vertex.position.y() << ")\n";
+    // }
+
 }
 
 void Obstacle::FindAbsVxs(double time, std::vector<Vertex> &vxs_abs) {

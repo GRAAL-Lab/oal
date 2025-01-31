@@ -50,8 +50,8 @@ struct Entry {
 };
 
 int main(int, char **) {
-    bool loop_perf = true;
-    bool find_case = false;
+    bool loop_perf = false;
+    bool find_case = true;
     if (loop_perf) {
 
         int test_number_obs = 5;
@@ -97,12 +97,11 @@ int main(int, char **) {
         int obs_number;
         int not_found = 0;
 
-        bb_data bb_dimension(6, 2,
-                             4, 3,
-                             3, 3,
-                             2, 2,
-                             2, 2,
-                             1);
+        BoundingBoxData bb_data;
+        bb_data.dim_x = 10;
+        bb_data.dim_y = 3;
+        bb_data.Set(3, {0,0}, "", 0, 0, 0, 0, 0, 0, 0);
+        
 
         std::random_device r;
         std::default_random_engine e1(r());
@@ -139,7 +138,7 @@ int main(int, char **) {
                     for (auto i = 0; i < obs_number; i++) {
                         double heading = heading_gen(e1);
                         Obstacle obs(std::to_string(i + 1), {pos_gen(e1), pos_gen(e1)}, heading, speed_gen(e1),
-                                     heading + vel_dir_gen(e1), bb_dimension);
+                                     heading + vel_dir_gen(e1), bb_data);
                         //obs.print();
                         obstacles.push_back(obs);
                     }
@@ -213,12 +212,10 @@ int main(int, char **) {
             v_info.heading = M_PI/2;
             //double area_size = 50;
 
-            bb_data bb_dimension(6, 2,
-                                 4, 3,
-                                 3, 3,
-                                 2, 2,
-                                 2, 2,
-                                 1);
+            BoundingBoxData bb_data;
+            bb_data.dim_x = 10;
+            bb_data.dim_y = 3;
+            bb_data.Set(3, {0,0}, "", 0, 0, 0, 0, 0, 0, 0);
 
             std::random_device r;
             std::default_random_engine e1(r());
@@ -240,18 +237,18 @@ int main(int, char **) {
                     double heading = (double) ((int) heading_gen(e1) / 100);
                     /*Obstacle obs(std::to_string(i + 1), {pos_gen(e1), pos_gen(e1)}, (double) ((int) heading / 100),
                                  speed_gen(e1),
-                                 (double) ((int) heading / 100), bb_dimension);*/
+                                 (double) ((int) heading / 100), bb_data);*/
                     Obstacle obs(std::to_string(i + 1), {pos_gen(e1), pos_gen(e1)}, heading,
                                  speed_gen(e1),
-                                 heading+vel_dir_gen(e1), bb_dimension);
+                                 heading+vel_dir_gen(e1), bb_data);
                     //obs.print();
                     obstacles.push_back(obs);
                     obs.print();
                 }
             }else{
-                obstacles.push_back(Obstacle("1", {-2.72504, 37.3673}, 0, 0.117363, 0.108478, bb_dimension));
-                obstacles.push_back(Obstacle("2", {-0.869205, 15.8701}, 1, 0.116447, 0.764097, bb_dimension));
-                obstacles.push_back(Obstacle("3", {12.9714, 1.84414}, 3, 0.122745, 2.96205, bb_dimension));
+                obstacles.push_back(Obstacle("1", {-2.72504, 37.3673}, 0, 0.117363, 0.108478, bb_data));
+                obstacles.push_back(Obstacle("2", {-0.869205, 15.8701}, 1, 0.116447, 0.764097, bb_data));
+                obstacles.push_back(Obstacle("3", {12.9714, 1.84414}, 3, 0.122745, 2.96205, bb_data));
 
 
             }
@@ -272,12 +269,17 @@ int main(int, char **) {
                 //return 0;
             }else{
                 if (planner.ComputePath(goal, false, path)) {
+
+                    if(path.size()<3) continue;
+
                     Path temp = path;
                     std::vector<double> diff_speeds ={1.0};
                     while (!path.empty()) {
                         auto top = path.top();
                         path.pop();
-                        // Check if path is empty before accessing its top element
+
+                        if(top.obs_ptr != nullptr) std::cout<<top.speed_to_it<<"::\n";
+                        
                         if (!diff_speeds.empty() && top.speed_to_it != 0 &&
                             std::find(diff_speeds.begin(), diff_speeds.end(), top.speed_to_it) == diff_speeds.end()) {
                             diff_speeds.push_back(top.speed_to_it);
@@ -290,11 +292,11 @@ int main(int, char **) {
                         double min_speed = *std::min_element(diff_speeds.begin(), diff_speeds.end());
                         // Check if max element minus 0.6 is greater than min element
                         std::cout<<max_speed<<"_"<<min_speed<<std::endl;
-                        if (max_speed - 0.3 > min_speed) {
+                        // if (max_speed - 0.3 > min_speed) {
 
-                            temp.print(true);
-                            return 0;
-                        }
+                        //     temp.print(true);
+                        //     return 0;
+                        // }
                     }
 
                 /* if(path.size()>3)return 0;
@@ -338,12 +340,10 @@ int main(int, char **) {
             v_info.heading = M_PI/2;
             //double area_size = 50;
 
-            bb_data bb_dimension(6, 2,
-                                 4, 3,
-                                 3, 3,
-                                 2, 2,
-                                 2, 2,
-                                 1);
+            BoundingBoxData bb_data;
+            bb_data.dim_x = 10;
+            bb_data.dim_y = 3;
+            bb_data.Set(3, {0,0}, "", 0, 0, 0, 0, 0, 0, 0);
 
             std::random_device r;
             std::default_random_engine e1(r());
@@ -364,14 +364,14 @@ int main(int, char **) {
                     double heading = heading_gen(e1);
                     Obstacle obs(std::to_string(i + 1), {pos_gen(e1), pos_gen(e1)}, (double) ((int) heading / 100),
                                  0.0,
-                                 (double) ((int) heading / 100), bb_dimension);
+                                 (double) ((int) heading / 100), bb_data);
                     //obs.print();
                     obstacles.push_back(obs);
                     obs.print();
                 }
             }else{
-                obstacles.push_back(Obstacle("1", {21.0481, 11.9245}, -2, 0, -2, bb_dimension));
-                obstacles.push_back(Obstacle("2", {-1.51251, 37.3104}, 1, 0, 1, bb_dimension));
+                obstacles.push_back(Obstacle("1", {21.0481, 11.9245}, -2, 0, -2, bb_data));
+                obstacles.push_back(Obstacle("2", {-1.51251, 37.3104}, 1, 0, 1, bb_data));
             }
 
             v_info.rot_speed = 0;
@@ -411,18 +411,16 @@ int main(int, char **) {
     std::vector<Obstacle> obstacles;
     bool colregs = true;
 
-    /*bb_data bb_dimension(2, 1,
+    /*bb_data bb_data(2, 1,
                          4, 3,
                          3, 3,
                          2, 2,
                          2, 2,
                          1);*/
-    bb_data bb_dimension(2, 1,
-                         2, 3,
-                         2, 2,
-                         1, 1,
-                         1, 1,
-                         1);
+    BoundingBoxData bb_data;
+            bb_data.dim_x = 10;
+            bb_data.dim_y = 3;
+            bb_data.Set(3, {0,0}, "", 0, 0, 0, 0, 0, 0, 0);
 
     int scenario = 21;
     std::cin >> scenario;
@@ -446,8 +444,8 @@ int main(int, char **) {
             //Overtaking and crossing situation on the high seas
             // https://www.advanced.ecolregs.com/index.php?option=com_k2&view=item&id=172:overtaking-and-crossing-situation-on-the-high-seas&Itemid=359&lang=en
             v_info.position = {10, 0};
-            Obstacle obsB("B", {20, -10}, M_PI / 2, 1, M_PI / 2, bb_dimension);
-            Obstacle obsC("C", {40, 40}, -M_PI * 5 / 6, 1, -M_PI * 5 / 6, bb_dimension);
+            Obstacle obsB("B", {20, -10}, M_PI / 2, 1, M_PI / 2, bb_data);
+            Obstacle obsC("C", {40, 40}, -M_PI * 5 / 6, 1, -M_PI * 5 / 6, bb_data);
             obstacles.push_back(obsB);
             obstacles.push_back(obsC);
             goal = {10, 50};
@@ -458,8 +456,8 @@ int main(int, char **) {
             //Overtaking and crossing situation on the high seas
             // https://www.advanced.ecolregs.com/index.php?option=com_k2&view=item&id=367:overtaking-and-crossing-situation-on-the-high-seas&Itemid=359&lang=en
             v_info.position = {10, 0};
-            Obstacle obsB("B", {15, -10}, M_PI / 2, 1, M_PI / 2, bb_dimension);
-            Obstacle obsC("C", {40, 30}, -M_PI, 1, -M_PI, bb_dimension);
+            Obstacle obsB("B", {15, -10}, M_PI / 2, 1, M_PI / 2, bb_data);
+            Obstacle obsC("C", {40, 30}, -M_PI, 1, -M_PI, bb_data);
             obstacles.push_back(obsB);
             obstacles.push_back(obsC);
             goal = {10, 50};
@@ -469,8 +467,8 @@ int main(int, char **) {
             //Overtaking and head-on situation on the high seas
             // https://www.advanced.ecolregs.com/index.php?option=com_k2&view=item&id=370:overtaking-and-head-on-situation-on-the-high-seas&Itemid=359&lang=en
             v_info.position = {10, 0};
-            Obstacle obsB("B", {10, 20}, -M_PI / 2, 1, -M_PI / 2, bb_dimension);
-            Obstacle obsC("C", {13.2, 25}, -M_PI / 2, 1, -M_PI / 2, bb_dimension);
+            Obstacle obsB("B", {10, 20}, -M_PI / 2, 1, -M_PI / 2, bb_data);
+            Obstacle obsC("C", {13.2, 25}, -M_PI / 2, 1, -M_PI / 2, bb_data);
             obstacles.push_back(obsB);
             obstacles.push_back(obsC);
             goal = {10, 20};
@@ -479,8 +477,8 @@ int main(int, char **) {
         case 24: {
             //
             v_info.position = {10, 0};
-            Obstacle obsB("B", {-5, 15}, 0, 1, 0, bb_dimension);
-            Obstacle obsC("C", {-5, 10}, 0, 1, 0, bb_dimension, true);
+            Obstacle obsB("B", {-5, 15}, 0, 1, 0, bb_data);
+            Obstacle obsC("C", {-5, 10}, 0, 1, 0, bb_data, true);
             obstacles.push_back(obsB);
             obstacles.push_back(obsC);
             goal = {10, 20};
@@ -490,14 +488,14 @@ int main(int, char **) {
 
         case 2: {// head on WORKS (clear differences with/without Colregs)
             v_info.position = {10, 0};
-            Obstacle obs("1", {10.5, 35}, -M_PI / 2, 1, -M_PI / 2, bb_dimension);
+            Obstacle obs("1", {10.5, 35}, -M_PI / 2, 1, -M_PI / 2, bb_data);
             obstacles.push_back(obs);
             goal = {10, 20};
             break;
         }
         case 3: {// TS crossing from right
             v_info.position = {10, 0};
-            Obstacle obs("1", {24.4009, 10}, M_PI * 6 / 7, 0.5, M_PI * 6 / 7, bb_dimension);
+            Obstacle obs("1", {24.4009, 10}, M_PI * 6 / 7, 0.5, M_PI * 6 / 7, bb_data);
             obstacles.push_back(obs);
             goal = {10, 20};
             break;
@@ -517,9 +515,9 @@ int main(int, char **) {
 
         case 8: {// start in bb
             v_info.position = {10, 0};
-            //Obstacle obs1("1", {13, 4.5}, 0, 3.12, 0, bb_dimension);
-            Obstacle obs1("1", {-4, 0.5}, 0, 0.9, 0, bb_dimension);
-            //Obstacle obs2("2", {10, 16}, -M_PI / 2, 0.9, -M_PI / 2, bb_dimension);
+            //Obstacle obs1("1", {13, 4.5}, 0, 3.12, 0, bb_data);
+            Obstacle obs1("1", {-4, 0.5}, 0, 0.9, 0, bb_data);
+            //Obstacle obs2("2", {10, 16}, -M_PI / 2, 0.9, -M_PI / 2, bb_data);
             //obstacles.push_back(obs1);
             obstacles.push_back(obs1);
             goal = {10, 40};
@@ -527,29 +525,29 @@ int main(int, char **) {
         }
         case 9: {// goal in bb
             v_info.position = {10, 0};
-            Obstacle obs1("1", {10, 18}, M_PI / 2, 0, M_PI / 2, bb_dimension, true);
+            Obstacle obs1("1", {10, 18}, M_PI / 2, 0, M_PI / 2, bb_data, true);
             obstacles.push_back(obs1);
             goal = {10, 20};
             break;
         }
         case 10: { // bb overlap
             v_info.position = {10, 0};
-            Obstacle obs1("1", {9, 3.7}, 0, 0, 0, bb_dimension);
+            Obstacle obs1("1", {9, 3.7}, 0, 0, 0, bb_data);
             obstacles.push_back(obs1);
-            Obstacle obs2("2", {11, 4}, 0, 0, 0, bb_dimension);
+            Obstacle obs2("2", {11, 4}, 0, 0, 0, bb_data);
             obstacles.push_back(obs1);
             goal = {10, 10};
             break;
         }
         case 11: { // goal surrounded
             v_info.position = {10, 0};
-            Obstacle obs1("1", {10, 9}, 0, 0, 0, bb_dimension);
+            Obstacle obs1("1", {10, 9}, 0, 0, 0, bb_data);
             obstacles.push_back(obs1);
-            Obstacle obs2("2", {10, 11}, 0, 0, 0, bb_dimension);
+            Obstacle obs2("2", {10, 11}, 0, 0, 0, bb_data);
             obstacles.push_back(obs1);
-            Obstacle obs3("3", {11, 10}, 0, 0, 0, bb_dimension);
+            Obstacle obs3("3", {11, 10}, 0, 0, 0, bb_data);
             obstacles.push_back(obs1);
-            Obstacle obs4("4", {9, 10}, 0, 0, 0, bb_dimension);
+            Obstacle obs4("4", {9, 10}, 0, 0, 0, bb_data);
             obstacles.push_back(obs1);
             obstacles.push_back(obs1);
             obstacles.push_back(obs2);
