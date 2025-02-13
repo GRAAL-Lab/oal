@@ -99,7 +99,7 @@ struct Path {
 
             while (!temp.empty()) {
                 auto node = temp.top();
-                oss << "   - time: " << node.time << "  Pos: " << node.position.x() << " " << node.position.y();
+                oss << "   - time: " << node.time.count() << "  Pos: " << node.position.x() << " " << node.position.y();
 
                 if (node.obs_ptr != nullptr) {
                     switch (node.vx) {

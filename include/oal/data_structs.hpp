@@ -2,6 +2,7 @@
 #define DATASTRUCTS_HPP
 
 #include <eigen3/Eigen/Dense>
+#include <chrono>
 
 struct Pose{
     Eigen::Vector2d position;
@@ -16,7 +17,7 @@ struct Velocity{
 
 struct TPoint {
     Eigen::Vector2d position;
-    double time = 0;
+    std::chrono::duration<double> time;
 };
 
 struct BoundingBoxData {
@@ -25,7 +26,6 @@ struct BoundingBoxData {
     double dim_x;
     double dim_y;
 
-    double vehicleSize = 4; // vehicle max(width, lenght)
     double minDistFromObs = 6;
     double reductionWhileCheckingPath = 1; // TODO this could depend only on the ASV capability of staying on the predicted course?
     double safeMaxGap = 0;
@@ -63,7 +63,7 @@ struct BoundingBoxData {
         //max also positional error
         //yaw error should reduce the difference in lenght and width
 
-        double min_safety_dim = vehicleSize/2 + reductionWhileCheckingPath + minDistFromObs;
+        double min_safety_dim = reductionWhileCheckingPath + minDistFromObs;
 
         safety_x_bow = min_safety_dim + (dim_x + k*size_x_sigma + k*vel_x_sigma*lookAheadSafetySpan)/2;
         safety_x_stern = min_safety_dim + (dim_x + k*size_x_sigma)/2;

@@ -117,7 +117,7 @@ void Obstacle::ComputeLocalVxsBasedOnVhDist(const Eigen::Vector2d &bodyObs_vhPos
 
 }
 
-void Obstacle::FindAbsVxs(double time, std::vector<Vertex> &vxs_abs) {
+void Obstacle::FindAbsVxs(std::chrono::duration<double> time, std::vector<Vertex> &vxs_abs) {
     // Eigen::Vector2d current_obs_position = ComputePosition(time);
     for (const Vertex &vx: vxs) {
         Vertex vx_abs = vx;
@@ -130,7 +130,7 @@ void Obstacle::FindAbsVxs(double time, std::vector<Vertex> &vxs_abs) {
 
 
 Eigen::Vector2d Obstacle::GetProjectionInLocalFrame(TPoint &time_point) {
-    Eigen::Vector2d element_obs = time_point.position - ComputePosition(*this, time_point.time);
+    Eigen::Vector2d element_obs = time_point.position - ComputePosition(*this, std::chrono::duration_cast<std::chrono::seconds>(time_point.time));
     Eigen::Rotation2D<double> rotation(pose.heading);
     return rotation.inverse() * element_obs;
 }
@@ -150,7 +150,7 @@ bool Obstacle::IsInBB(TPoint &time_point) {
     }
 }
 
-std::string Obstacle::plotStuff(double time) {
+std::string Obstacle::plotStuff(std::chrono::duration<double> time) {
     std::ostringstream stream;
     // stream << "Obs_" << id << std::endl;
     // Eigen::Vector2d abs_position = ComputePosition(*this, time);

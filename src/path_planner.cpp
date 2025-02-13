@@ -1,7 +1,8 @@
 #include "oal/path_planner.hpp"
 
+namespace oal{
 // Compute the path to reach the goal
-bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colregs, Path &path) {
+bool PathPlanner::ComputePath(const Eigen::Vector2d &goal_position, bool colregs, Path &path, PathReport pathReport, std::chrono::milliseconds time_limit) {
     path = Path();
     colregs_compliance = colregs;
     // Plot stuff
@@ -33,13 +34,14 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
         plotWpsFile_ << "Time_" << 0 << std::endl;
         plotWpsFile_ << "Waypoint_" << v_info_.position.x() << "_" << v_info_.position.y() << std::endl;
         for (const obs_ptr &obs_ptr: obss_info_.obstacles) {
-            plotWpsFile_ << obs_ptr->plotStuff(0);
+            plotWpsFile_ << obs_ptr->plotStuff(std::chrono::duration<double>(0));
         }
     }
 
     // Root node setup
     if (!RootSetup(goal_position, open_set)) {
-        std::cerr << "OAL: Cannot find way out of bb(s) " << std::endl;
+        pathReport.result = NOWAYOUT;
+        //std::cerr << "OAL: Cannot find way out of bb(s) " << std::endl;
         return false;
     }
     // Initialize reachable with root
@@ -47,7 +49,18 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
 
     // Run until every node is studied or a path is found
     bool found = false;
+
+
+    auto start = std::chrono::steady_clock::now();
     while (!open_set.empty()) {
+        
+        auto now = std::chrono::steady_clock::now();
+        std::chrono::milliseconds elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start);
+        if (time_limit > std::chrono::milliseconds(0) && elapsed > time_limit) {
+            pathReport.result = TIMEOUT;
+            return false;
+        }
+
         n_node_analyzed++;
         current = *open_set.begin();
         open_set.erase(open_set.begin());
@@ -135,14 +148,16 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
     }
 
 
-    if (!found || current.time == 0) {
+    if (!found) {
         // No path found OR GOAL == START
         if (current.parent == nullptr) {
-            std::cerr << "OAL: Cannot find a single viable node " << std::endl;
+            pathReport.result = NOWAYOUT;
+            pathReport.failMsg = "Cannot find a single viable node";
             return false; // still in start
         }
 
-        std::cerr << "OAL: Search did not find any path to goal, returning best estimate if any " << std::endl;
+        pathReport.result = PARTIAL;
+        pathReport.failMsg = "OAL: Search did not find any path to goal, returning best estimate if any ";
         // Find the node with the smallest est. time to goal among the analyzed ones
         Node best_goal = current;
         while (!reachable_full_set.empty()) {
@@ -154,7 +169,8 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
         }
 
         if ((best_goal.position - v_info_.position).norm() < acceptanceRadius) {
-            std::cerr << "OAL: The most close node to goal is basically the starting point " << std::endl;
+            pathReport.result = NOWAYOUT;
+            pathReport.failMsg = "OAL: The most close node to goal is basically the starting point ";
             return false; // new goal is starting point
         }
         current = best_goal;
@@ -169,7 +185,7 @@ bool path_planner::ComputePath(const Eigen::Vector2d &goal_position, bool colreg
     return true;
 }
 
-bool path_planner::CheckFinal(const Node &start, Node goal, std::multiset<Node> &open_set,
+bool PathPlanner::CheckFinal(const Node &start, Node goal, std::multiset<Node> &open_set,
                               std::multiset<Node> &reachable_full_set) {
     // True if start == goal
     if ((goal.position - start.position).norm() <= acceptanceRadius || start.is_final) {
@@ -179,7 +195,7 @@ bool path_planner::CheckFinal(const Node &start, Node goal, std::multiset<Node> 
     for (double &speed: v_info_.velocities) {
         goal.speed_to_it = speed;
         std::shared_ptr<std::vector<obs_ptr>> surrounding_obs(new std::vector<obs_ptr>);
-        goal.time = start.time + (goal.position - start.position).norm() / goal.speed_to_it;
+        goal.time = std::chrono::duration<double>(start.time.count() + (goal.position - start.position).norm() / goal.speed_to_it);
         // Check if goal is unreachable just for it being in one bb (this, for every possible velocity)
         if (IsInAnyBB({goal.position, goal.time}, surrounding_obs)) {
             // the goal is unreachable, let's try and find a new goal.
@@ -221,7 +237,7 @@ bool path_planner::CheckFinal(const Node &start, Node goal, std::multiset<Node> 
 }
 
 
-bool path_planner::CheckColreg(const Node &start, Node &goal) const {
+bool PathPlanner::CheckColreg(const Node &start, Node &goal) const {
     // Check only if colregs compliance is requested
     if (!colregs_compliance || goal.obs_ptr->velocity.speed <= 0.01) {
         return true;
@@ -289,7 +305,7 @@ bool path_planner::CheckColreg(const Node &start, Node &goal) const {
 }
 
 // Check if the path between start and goal collide with any obstacle
-bool path_planner::CheckCollision(const Node &start, Node &goal,
+bool PathPlanner::CheckCollision(const Node &start, Node &goal,
                                   const std::shared_ptr<std::vector<Node>> &collision_points) {
     auto start_time = std::chrono::system_clock::now();
 
@@ -411,7 +427,7 @@ bool path_planner::CheckCollision(const Node &start, Node &goal,
                     cp_node.position = collision_point_2d;
                     cp_node.obs_ptr = obs_ptr;
                     cp_node.vx = NA;
-                    cp_node.time = start.time + collision_point.z();
+                    cp_node.time = std::chrono::duration<double>(start.time.count() + collision_point.z());
                     collision_points->push_back(cp_node);
 
                 }
@@ -448,7 +464,7 @@ bool path_planner::CheckCollision(const Node &start, Node &goal,
     return true;
 }
 
-bool path_planner::FindLinePlaneIntersectionPoint(Vertex vx1, Vertex vx2, const Eigen::Vector3d &bb_direction,
+bool PathPlanner::FindLinePlaneIntersectionPoint(Vertex vx1, Vertex vx2, const Eigen::Vector3d &bb_direction,
                                                   const Node &start, const Node &goal,
                                                   Eigen::Vector3d &collision_point) {
 
@@ -493,7 +509,7 @@ bool path_planner::FindLinePlaneIntersectionPoint(Vertex vx1, Vertex vx2, const 
     return false;
 }
 
-void path_planner::BuildPath(Node &current, Path &path) {    // Build path from goal to initial position
+void PathPlanner::BuildPath(Node &current, Path &path) {    // Build path from goal to initial position
     /*std::cout<<" Length: "<<path.metrics.totDistance<<" meters\n"
              <<" Total course change: "<<path.metrics.totHeadingChange<<" radians\n"
              <<" Max course change: "<<path.metrics.maxHeadingChange<<" radians"<<std::endl;*/
@@ -501,7 +517,7 @@ void path_planner::BuildPath(Node &current, Path &path) {    // Build path from 
     // goal is supposed to have at least one root
     path.waypoints.push(current);
     if(plotFlag){
-        plotWpsFile_ << "Time_" << current.time << std::endl;
+        plotWpsFile_ << "Time_" << current.time.count() << std::endl;
         plotWpsFile_ << "Waypoint_" << current.position(0) << "_" << current.position(1) << std::endl;
         for (const obs_ptr &obs_ptr: obss_info_.obstacles) {
             plotWpsFile_ << obs_ptr->plotStuff(current.time);
@@ -515,7 +531,7 @@ void path_planner::BuildPath(Node &current, Path &path) {    // Build path from 
         path.waypoints.push(current);
         //  Plot stuff
         if(plotFlag){
-            plotWpsFile_ << "Time_" << current.time << std::endl;
+            plotWpsFile_ << "Time_" << current.time.count() << std::endl;
             plotWpsFile_ << "Waypoint_" << current.position(0) << "_" << current.position(1) << std::endl;
             for (const obs_ptr &obs_ptr: obss_info_.obstacles) {
                 plotWpsFile_ << obs_ptr->plotStuff(current.time);
@@ -529,7 +545,7 @@ void path_planner::BuildPath(Node &current, Path &path) {    // Build path from 
 }
 
 // Given some obstacle vertexes, find the intercept points
-void path_planner::FindInterceptPoints(const Node &start, Obstacle &obstacle, double vh_speed,
+void PathPlanner::FindInterceptPoints(const Node &start, Obstacle &obstacle, double vh_speed,
                                        std::vector<Vertex> visible_vxs, std::vector<Vertex> &reachable_vxs) {
     //std::vector<Vertex> vxs;
     Eigen::Vector3d bb_timeDirection(obstacle.velocity.speed * cos(obstacle.velocity.angle), obstacle.velocity.speed * sin(obstacle.velocity.angle), 1);
@@ -569,7 +585,7 @@ void path_planner::FindInterceptPoints(const Node &start, Obstacle &obstacle, do
                 TPoint intercept_point;
                 intercept_point.position.x() = point_3d.x();
                 intercept_point.position.y() = point_3d.y();
-                intercept_point.time = point_3d.z();
+                intercept_point.time = std::chrono::duration<double>(point_3d.z());
                 std::shared_ptr<std::vector<obs_ptr>> surrounding_obs(new std::vector<obs_ptr>);
                 bool isInAnyBB = IsInAnyBB(intercept_point, surrounding_obs);
                 if (isInAnyBB && surrounding_obs->size() == 1 && surrounding_obs->at(0)->id == obstacle.id) {
@@ -589,7 +605,7 @@ void path_planner::FindInterceptPoints(const Node &start, Obstacle &obstacle, do
     //vxs_abs = vxs;
 }
 
-bool path_planner::IsInAnyBB(TPoint time_point,
+bool PathPlanner::IsInAnyBB(TPoint time_point,
                              const std::shared_ptr<std::vector<obs_ptr>> &surrounding_obs) {
     for (const obs_ptr &obs_ptr: obss_info_.obstacles) {
         if (obs_ptr->IsInBB(time_point)) {
@@ -602,7 +618,7 @@ bool path_planner::IsInAnyBB(TPoint time_point,
     return false;
 }
 
-bool path_planner::CheckPath(const Eigen::Vector2d &vh_pos, Path path, Eigen::Vector2d &unreachable_wp) {
+bool PathPlanner::CheckPath(const Eigen::Vector2d &vh_pos, Path path, Eigen::Vector2d &unreachable_wp) {
     // the waypoint should be just the ones left to reach, not the whole path returned by the library
     if (path.empty()) {
         std::cerr << "OAL: PATH IS EMPTY -> CHECK = FALSE" << std::endl;
@@ -614,7 +630,7 @@ bool path_planner::CheckPath(const Eigen::Vector2d &vh_pos, Path path, Eigen::Ve
 
     Node start;
     start.position = vh_pos;
-    start.time = 0;
+    start.time = std::chrono::duration<double>(0);
     start.obs_ptr = path.top().obs_ptr;
     start.vx = path.top().vx;
 
@@ -640,13 +656,13 @@ bool path_planner::CheckPath(const Eigen::Vector2d &vh_pos, Path path, Eigen::Ve
     return true;
 }
 
-bool path_planner::RootSetup(const Eigen::Vector2d &goal_position, std::multiset<Node> &open_set) {
+bool PathPlanner::RootSetup(const Eigen::Vector2d &goal_position, std::multiset<Node> &open_set) {
     std::shared_ptr<std::vector<obs_ptr>> surrounding_obs(new std::vector<obs_ptr>);
-    IsInAnyBB({v_info_.position, 0}, surrounding_obs);
+    IsInAnyBB({v_info_.position, std::chrono::duration<double>(0)}, surrounding_obs);
     Obstacle surr_obs;
     Node root;
     root.position = v_info_.position;
-    root.time = 0;
+    root.time = std::chrono::duration<double>(0);
     if (!surrounding_obs->empty()) {
         if (surrounding_obs->size() > 1) {
             // The starting point is in a number of different bb, at the moment no solution
@@ -671,13 +687,13 @@ bool path_planner::RootSetup(const Eigen::Vector2d &goal_position, std::multiset
     return true;
 }
 
-void path_planner::FindObssLocalVxs(bool with_uncertainty) {
+void PathPlanner::FindObssLocalVxs(bool with_uncertainty) {
     // Set the bounding box dimension based on the vehicle start distance from the obstacles
     for (const obs_ptr &obs: obss_info_.obstacles) {
         obs->uncertainty = with_uncertainty;
         //obs->FindLocalVxs(v_info_.position);
 
-        TPoint time_point = {v_info_.position, 0};
+        TPoint time_point = {v_info_.position, std::chrono::duration<double>(0)};
         // Distance obs-vehicle wrt obs frame, on x and y
         Eigen::Vector2d bodyObs_vhPos = obs->GetProjectionInLocalFrame(time_point);
         
@@ -685,4 +701,5 @@ void path_planner::FindObssLocalVxs(bool with_uncertainty) {
     }
 }
 
+}
 

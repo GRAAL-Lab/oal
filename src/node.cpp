@@ -2,7 +2,7 @@
 #include "oal/helper_functions.hpp"
 
 void Node::UpdateCosts(const Eigen::Vector2d &goal, double highest_speed, double rot_speed) {
-    costToReach = time; //if the cost is the time to reach the target
+    costToReach = time.count(); //if the cost is the time to reach the target
     Eigen::Vector2d dist_to_goal = goal - position;
     costToGoal = dist_to_goal.norm() / highest_speed;
 
@@ -74,7 +74,7 @@ void Node::FindVisibilityVxs(Obstacle target_obs, std::vector<Vertex> &vxs_abs) 
 
     // Find the angles between vectors from vehicle to each vxs and the vector from vehicle to the obs center,
     //  then the visible vxs are the ones with min/max angle + the ones closer to the vehicle than these two
-    Eigen::Vector2d obs_position = ComputePosition(target_obs, time);
+    Eigen::Vector2d obs_position = ComputePosition(target_obs, std::chrono::duration_cast<std::chrono::seconds>(time));
     Eigen::Vector2d obs_vh = obs_position - position;
 
     std::vector<double> thetas;  // angles wrt abs frame
@@ -155,7 +155,7 @@ void Node::FindVisibilityVxs(Obstacle target_obs, std::vector<Vertex> &vxs_abs) 
 
 void Node::FindExitVxs(std::vector<vx_id> &allowedVxs) const {
     Obstacle obs = *obs_ptr;
-    Eigen::Vector2d bodyObs_e = GetProjectionInObsFrame(position, obs, 0.0);
+    Eigen::Vector2d bodyObs_e = GetProjectionInObsFrame(position, obs, std::chrono::seconds(0));
 
     bool IsLeftOfDiag1 = (bodyObs_e.y() >=
                           obs.vxs[1].position.y() / obs.vxs[1].position.x() *
@@ -207,7 +207,7 @@ void Node::FindExitVxs(std::vector<vx_id> &allowedVxs) const {
 bool Node::HasSimilarIn(std::multiset<Node> &set, Node &similar) {
     for (auto node_it = set.begin(); node_it != set.end(); ++node_it) {
         bool isSimilar = ((position - node_it->position).norm() < 0.5 && 
-                          std::abs((time - node_it->time)) < 0.1 &&
+                          std::abs((time - node_it->time).count()) < 0.1 &&
                           obs_ptr.get() == node_it->obs_ptr.get() && 
                           vx == node_it->vx);
         if (isSimilar) {

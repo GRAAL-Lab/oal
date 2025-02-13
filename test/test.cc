@@ -154,7 +154,7 @@ int main(int, char **) {
                         }
 
                         double ACC_RADIUS = 2;
-                        path_planner planner(v_info, obstacles, ACC_RADIUS);
+                        oal::PathPlanner planner(v_info, obstacles, ACC_RADIUS);
                         Path path, temp;
                         if (!planner.ComputePath(goal, colregs, path)) {
                             not_found++;
@@ -255,7 +255,7 @@ int main(int, char **) {
 
             auto v_info_c = v_info;
 
-            path_planner planner(v_info, obstacles, ACC_RADIUS);
+            oal::PathPlanner planner(v_info, obstacles, ACC_RADIUS);
 
 
             Path path, path_c;
@@ -377,8 +377,8 @@ int main(int, char **) {
             v_info.rot_speed = 0;
             auto v_info_c = v_info;
             v_info_c.rot_speed = 0.314;
-            path_planner planner(v_info, obstacles, ACC_RADIUS);
-            path_planner planner_c(v_info_c, obstacles, ACC_RADIUS);
+            oal::PathPlanner planner(v_info, obstacles, ACC_RADIUS);
+            oal::PathPlanner planner_c(v_info_c, obstacles, ACC_RADIUS);
 
             Path path, path_c;
 
@@ -562,8 +562,8 @@ int main(int, char **) {
 
     double ACC_RADIUS = 2;
 
-    path_planner planner1(v_info, obstacles, ACC_RADIUS);
-    path_planner planner2(v_info, obstacles, ACC_RADIUS);
+    oal::PathPlanner planner1(v_info, obstacles, ACC_RADIUS);
+    oal::PathPlanner planner2(v_info, obstacles, ACC_RADIUS);
 
     /*Path path1;
     std::cout << std::endl << "Colregs: false";

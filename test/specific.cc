@@ -40,7 +40,7 @@ int main(int, char **) {
     v_info.position = {-0.019284, -0.0236757};
     v_info.velocities = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1 };
 
-    path_planner planner;
+    oal::PathPlanner planner;
     std::vector<Obstacle> obstacles;
     BoundingBoxData bb_data;
         bb_data.dim_x = 10;

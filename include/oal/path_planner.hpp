@@ -1,5 +1,5 @@
-#ifndef PATH_PLANNER_HPP
-#define PATH_PLANNER_HPP
+#ifndef PathPlanner_HPP
+#define PathPlanner_HPP
 
 #include <iostream>
 #include <fstream>
@@ -28,7 +28,21 @@ struct stats{
     int set_ordered =0 ;
 };
 
-class path_planner {
+namespace oal {
+
+enum SearchResult {
+    FOUND,
+    PARTIAL,
+    TIMEOUT,
+    NOWAYOUT
+};
+
+struct PathReport{
+    SearchResult result;
+    std::string failMsg;
+};
+
+class PathPlanner {
 private:
     bool plotFlag = false;
     
@@ -85,9 +99,9 @@ public:
     stats average_time;
 
     // vehicle start position and obstacles information are supposed to be taken in the same time instant.
-    path_planner() = default;
+    PathPlanner() = default;
 
-    path_planner(VehicleInfo v_info, const std::vector<Obstacle> &obstacles, double acc_radius)
+    PathPlanner(VehicleInfo v_info, const std::vector<Obstacle> &obstacles, double acc_radius)
             : v_info_(std::move(v_info)) {
         colregs_compliance = false;
         acceptanceRadius = acc_radius;
@@ -103,7 +117,7 @@ public:
     }
 
     // Compute the path to reach the goal and fills the path's waypoints stack
-    bool ComputePath(const Eigen::Vector2d &goal, bool colregs, Path &path);
+    bool ComputePath(const Eigen::Vector2d &goal, bool colregs, Path &path, PathReport pathReport = PathReport(), std::chrono::milliseconds time_limit = std::chrono::milliseconds(-1));
 
     // Given a trajectory, checks if it's safe
     bool CheckPath(const Eigen::Vector2d &vh_pos, Path path, Eigen::Vector2d &unreachable_wp);
@@ -160,4 +174,5 @@ for (const auto &obs: obss_info_.obstacles) {
     }
 };
 
+}
 #endif

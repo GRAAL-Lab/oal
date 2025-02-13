@@ -15,7 +15,7 @@ class Node {
 public:
     // Defining attributes
     Eigen::Vector2d position; //vehicle position
-    double time = -1;  // time instant
+    std::chrono::duration<double> time;  // time instant
     double speed_to_it = 0;
     std::shared_ptr<Obstacle> obs_ptr = nullptr;
     vx_id vx = NA;
@@ -43,7 +43,7 @@ public:
     Node(const TPoint &point, const std::shared_ptr<Obstacle> &obs_ptr, vx_id vx, const Node &parent_node)
             : obs_ptr(obs_ptr), vx(vx) {
         position = point.position;
-        time = parent_node.time + point.time;
+        time = parent_node.time + std::chrono::duration<double>(point.time);
         SetParent(parent_node);
     }
 
@@ -77,7 +77,7 @@ public:
     // Nodes are equal if position, time, speed, obs and vx are the same (small epsilon involved for position and time)
     bool operator==(const Node &other) const {
         return (position - other.position).norm() < 0.01 &&                       // same position
-               abs(time - other.time) < 0.5 &&                                 // same time
+               abs((time - other.time).count()) < 0.5 &&                                 // same time
                obs_ptr.get() == other.obs_ptr.get() && vx == other.vx &&      // same obs and vx
                parent->obs_ptr.get() == other.parent->obs_ptr.get() &&        // same parent obs
                parent->vx == other.parent->vx;                                 // same parent vx
@@ -133,7 +133,7 @@ public:
         Node node = *this;
         if (node.parent != nullptr) std::cout << std::endl << "  Trace: " << std::endl;
         while (node.parent != nullptr) {
-            std::cout << "   - time: " << node.time << "  Pos: " << node.position.x() << " " << node.position.y();
+            std::cout << "   - time: " << node.time.count() << "  Pos: " << node.position.x() << " " << node.position.y();
             if (ignoring_obs_debug) std::cout << "  !!! ignoring an obs for it is giving way: " << std::endl;
             if (node.obs_ptr != nullptr) {
                 std::cout << "   Obs: " << node.obs_ptr->id << "/" << (vx_id) node.vx << "  reaching speed: "

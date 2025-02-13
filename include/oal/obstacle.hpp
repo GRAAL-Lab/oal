@@ -35,7 +35,7 @@ public:
     //              double &bb_dim_y_starboard, double &bb_dim_y_port) const;
 
     // Project vxs position in world frame
-    void FindAbsVxs(double time, std::vector<Vertex> &vxs_abs);
+    void FindAbsVxs(std::chrono::duration<double> time, std::vector<Vertex> &vxs_abs);
 
     // Project absolute position in obstacle frame (depends on time-instant)
     Eigen::Vector2d GetProjectionInLocalFrame(TPoint &time_point);
@@ -43,7 +43,7 @@ public:
     // Check if point is in obs bb (depends on time-instant)
     bool IsInBB(TPoint &time_point);
 
-    std::string plotStuff(double time);
+    std::string plotStuff(std::chrono::duration<double> time);
 
     void print() const {
         //std::cout<<id<<std::endl<< position.x()<<" "<<position.y()<<std::endl<<head<<std::endl<<speed<<std::endl;
