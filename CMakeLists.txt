@@ -31,10 +31,10 @@ add_custom_target(.ProjectFiles. SOURCES ${SOURCE_FILES})
 option(BUILD_TESTS "Compile tests" ON)
 
 add_library(oal SHARED
-        src/path_planner.cpp
-        src/helper_functions.cpp
-        src/node.cpp
-        src/obstacle.cpp
+        src/devel/generator.cpp
+        src/devel/geometric_utilities.cpp
+        src/devel/node.cpp
+        src/devel/path_evaluator.cpp
         )
 
 # find dependencies
@@ -83,10 +83,18 @@ install(EXPORT oalConfig DESTINATION share/oal/cmake)
 export(TARGETS oal FILE oalConfig.cmake)
 
 if (BUILD_TESTS)
-    # Every library has unit tests, of course
-    add_executable(oal_test test/specific.cc)
+    add_executable(geometry_test test/devel/geometry.cc src/devel/geometric_utilities.cpp)
+    target_link_libraries(geometry_test oal)
+    add_test(geometry_test geometry_test)
 
-    target_link_libraries(oal_test oal)
+    add_executable(first_test 
+        test/devel/first.cc 
+        src/devel/generator.cpp
+        src/devel/node.cpp
+        src/devel/obstacle.cpp 
+        src/devel/path_evaluator.cpp
+        src/devel/geometric_utilities.cpp)
+    target_link_libraries(first_test oal)
+    add_test(first_test first_test)    
 
-    add_test(oal_test oal_test)
 endif (BUILD_TESTS)

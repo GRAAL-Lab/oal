@@ -30,17 +30,6 @@ struct stats{
 
 namespace oal {
 
-enum SearchResult {
-    FOUND,
-    PARTIAL,
-    TIMEOUT,
-    NOWAYOUT
-};
-
-struct PathReport{
-    SearchResult result;
-    std::string failMsg;
-};
 
 class PathPlanner {
 private:

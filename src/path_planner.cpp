@@ -148,10 +148,10 @@ bool PathPlanner::ComputePath(const Eigen::Vector2d &goal_position, bool colregs
     }
 
 
-    if (!found) {
+    if (!found || current.time.count() < 0.1) {
         // No path found OR GOAL == START
         if (current.parent == nullptr) {
-            pathReport.result = NOWAYOUT;
+            pathReport.result = ;
             pathReport.failMsg = "Cannot find a single viable node";
             return false; // still in start
         }

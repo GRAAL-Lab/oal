@@ -174,7 +174,7 @@ int main(int, char **) {
                             entry.path_length += (last.position - goal).norm();
                             entry.path_length = entry.path_length / (v_info.position - goal).norm();
                             //std::cout<<max_speed<<", "<<last.time<<", "<<(v_info.position - goal).norm()<<"\n";
-                            entry.path_time = last.time / (v_info.position - goal).norm() / max_speed;
+                            //TODO entry.path_time = last.time / (v_info.position - goal).norm() / max_speed;
 
                             if (entry.path_length < 1) {
                                 std::cout << entry.path_length * (v_info.position - goal).norm() << "\n";
