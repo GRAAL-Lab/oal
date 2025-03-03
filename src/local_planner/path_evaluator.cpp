@@ -1,4 +1,4 @@
-#include "oal/devel/path_evaluator.hpp"
+#include "oal/local_planner/path_evaluator.hpp"
 
 bool oal::PathEvaluator::RuleCompliantMotion(const NodePtr& start, NodePtr& goal) {
     // Check only if colregs compliance is requested
@@ -72,7 +72,7 @@ bool oal::PathEvaluator::HasHigherPriority(std::string obsClass){
     return false;
 }
 
-bool oal::PathEvaluator::CollisionWithObs(const NodePtr& start, const NodePtr& goal, const ObsPtr& obs, bool colregs){
+bool oal::PathEvaluator::CollisionWithObs(const NodePtr& start, const NodePtr& goal, const ObsPtr& obs, std::vector<Eigen::Vector3d>& collisions, bool colregs){
     // Check if path collide with the obstacle (true == collision)
 
     Eigen::Vector2d path = goal->data.position - start->data.position;
@@ -104,13 +104,11 @@ bool oal::PathEvaluator::CollisionWithObs(const NodePtr& start, const NodePtr& g
         }
     }
 
-
     auto get3DVector = [& vxs] (int index) {
         return Eigen::Vector3d(vxs[index].second.x(), vxs[index].second.y(), 0.0);
     };
 
     // Starts in TS bb and does NOT go to same obs
-    //if (isDepartingObs && start.vx == NA) {
     if (isDepartingObs && start->data.vx == NA) {
         if (!isApproachingObs) {
             // Check both bb diagonals for collisions
@@ -128,9 +126,12 @@ bool oal::PathEvaluator::CollisionWithObs(const NodePtr& start, const NodePtr& g
             bool cutThroughDiag2 = FindLinePlaneIntersection(p1, p2, get3DVector(FL), planeNormal2, cp2);
 
             if (cutThroughDiag1 || cutThroughDiag2) {
+                if(cutThroughDiag1) collisions.push_back(cp1);
+                if(cutThroughDiag2) collisions.push_back(cp2);
                 return true;
             }
         }
+        // If it is both departing and approaching, then we ar
         return false;
     }
 
@@ -139,38 +140,40 @@ bool oal::PathEvaluator::CollisionWithObs(const NodePtr& start, const NodePtr& g
     if (isApproachingObs) return false;
 
     // search each of the bb 4 sides for collisions with path
-    std::vector<std::vector<int>> side_idxs = {{0, 2},
+    std::vector<std::pair<int, int>> side_idxs = {{0, 2},
                                                 {0, 1},
                                                 {3, 2},
                                                 {3, 1}};
     int vx_idx1, vx_idx2;
     for (const auto &side_idx: side_idxs) {
-        vx_idx1 = side_idx.at(0);
-        vx_idx2 = side_idx.at(1);
+        vx_idx1 = side_idx.first;
+        vx_idx2 = side_idx.second;
+
+        auto vx1_pos = get3DVector(vx_idx1);
+        auto vx2_pos = get3DVector(vx_idx2);
 
         // if the path starts from the current obs, do not check the sides of the departing vx.
         //  still, the diagonals of start.obs will be checked for collision
         if (isDepartingObs && (start->data.vx == vx_idx1 || start->data.vx == vx_idx2)) {
-            return false;
+            continue;
         }
         
         Eigen::Vector3d p1 = {start->data.position.x(), start->data.position.y(), 0};
         Eigen::Vector3d p2 = {goal->data.position.x(), goal->data.position.y(), goal->data.time.count() - start->data.time.count()};
-        Eigen::Vector3d planeNormal = obs_velocity.cross(get3DVector(vx_idx1) - get3DVector(vx_idx2));
+        Eigen::Vector3d planeNormal = obs_velocity.cross(vx1_pos - vx2_pos);
         Eigen::Vector3d cp;
-        bool collision = FindLinePlaneIntersection(p1, p2, get3DVector(vx_idx1), planeNormal, cp);
+        bool collision = FindLinePlaneIntersection(p1, p2, vx1_pos, planeNormal, cp);
         if(collision){
-            // The desired path crosses the face of the bb defined by the two vxs and its direction
-            // if (collision_points != nullptr) {
-            //     // optional argument is given, append collision point
-            //     Node cp_node;
-            //     Eigen::Vector2d collision_point_2d(collision_point.x(), collision_point.y());
-            //     cp_node.position = collision_point_2d;
-            //     cp_node.obs_ptr = obs_ptr;
-            //     cp_node.vx = NA;
-            //     cp_node.time = std::chrono::duration<double>(start.time.count() + collision_point.z());
-            //     collision_points->push_back(cp_node);
-            return true;
+            // Get vertexes at time t'
+            Eigen::Vector3d vertex1_position = vx1_pos + obs_velocity * cp.z();
+            Eigen::Vector3d vertex2_position = vx2_pos + obs_velocity * cp.z();
+            // Check if point is inside those two vertexes
+            Eigen::Vector3d P1 = cp - vertex1_position;
+            Eigen::Vector3d P2 = cp - vertex2_position;
+            if (P1.dot(P2) <= 0) {
+                collisions.push_back(cp);
+                return true;
+            }
         }
             
     }
@@ -191,6 +194,7 @@ bool oal::PathEvaluator::CollisionWithObs(const NodePtr& start, const NodePtr& g
         Eigen::Vector3d planeNormal = obs_velocity.cross(get3DVector(vx_idx1) - get3DVector(vx_idx2));
         Eigen::Vector3d cp;
         if(FindLinePlaneIntersection(p1, p2, get3DVector(vx_idx1), planeNormal, cp)){
+            collisions.push_back(cp);
             return true;
         }
         

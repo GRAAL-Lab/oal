@@ -1,9 +1,9 @@
 #ifndef PATH_EVALUATOR_HPP
 #define PATH_EVALUATOR_HPP
 
-#include "oal/devel/geometric_utilities.hpp"
-#include "oal/devel/obstacle.hpp"
-#include "oal/devel/node.hpp"
+#include "oal/geometric_utilities.hpp"
+#include "oal/obstacle.hpp"
+#include "oal/local_planner/node.hpp"
 
 #define HeadOnAngle (15*(M_PI/180))
 #define OvertakingAngle (112*(M_PI/180))
@@ -18,7 +18,7 @@ namespace oal{
 
         public:
 
-            static bool CollisionWithObs(const NodePtr& start, const NodePtr& goal, const ObsPtr& obs, bool colregs = false);
+            static bool CollisionWithObs(const NodePtr& start, const NodePtr& goal, const ObsPtr& obs, std::vector<Eigen::Vector3d>& collisions, bool colregs = false);
 
             static bool RuleCompliantMotion(const NodePtr& start, NodePtr& goal);
     

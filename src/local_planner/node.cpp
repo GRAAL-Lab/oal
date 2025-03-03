@@ -1,4 +1,4 @@
-#include "oal/devel/node.hpp"
+#include "oal/local_planner/node.hpp"
 
 oal::AStarNode::AStarNode(EncounterData d, std::shared_ptr<AStarNode> parent) 
 : data(d) {

@@ -1,73 +1,113 @@
-#ifndef OAL_OBSTACLE_HPP
-#define OAL_OBSTACLE_HPP
+#ifndef OBSTACLE_HPP
+#define OBSTACLE_HPP
 
 #include <eigen3/Eigen/Eigen>
 #include <utility>
 #include <memory>
 #include <iostream> //debug
-
-
-#include "oal/vertex.hpp"
+#include <fstream>
+#include <iomanip>  
 
 #include "oal/data_structs.hpp"
 
+namespace oal{
 
-
-class Obstacle {
-//private:
-public:
-    // Defining attributes
+class Obstacle{
+            
     std::string id;
     std::string obsClass;
-    Pose pose;
-    Velocity velocity;
+    Pose initial_pose;
+    Eigen::Vector2d velocity;
     BoundingBoxData bb_data;
-    bool higher_priority = false;
 
-    std::vector<Vertex> vxs; // local position (wrt obs)
+    Eigen::Vector2d obs_P_vehicle;
 
-    bool uncertainty = false;
+    std::vector<Vx> vxs; 
+    
+    void SetLocalVxs();
+    
+public: 
 
-    void ComputeLocalVxsBasedOnVhDist(const Eigen::Vector2d &bodyObs_vhPos, bool compensate_localization_error);
-
-    // Set bb size according to own ship distance
-    // void SetSize(double dist_x, double dist_y, double theta, double &bb_dim_x_bow, double &bb_dim_x_stern,
-    //              double &bb_dim_y_starboard, double &bb_dim_y_port) const;
-
-    // Project vxs position in world frame
-    void FindAbsVxs(std::chrono::duration<double> time, std::vector<Vertex> &vxs_abs);
-
-    // Project absolute position in obstacle frame (depends on time-instant)
-    Eigen::Vector2d GetProjectionInLocalFrame(TPoint &time_point);
-
-    // Check if point is in obs bb (depends on time-instant)
-    bool IsInBB(TPoint &time_point);
-
-    std::string plotStuff(std::chrono::duration<double> time);
-
-    void print() const {
-        //std::cout<<id<<std::endl<< position.x()<<" "<<position.y()<<std::endl<<head<<std::endl<<speed<<std::endl;
-        std::cout << "obstacles.push_back(Obstacle(\"" << id << "\", {" << pose.position.x() << ", " << pose.position.y() << "}, "
-                  << pose.heading << ", " << velocity.speed << ", " << velocity.angle << ", bb_dimension));" << std::endl;
+    Obstacle(std::string id, std::string obsClass, Pose initial_pose, Eigen::Vector2d velocity, BoundingBoxData bb_data, Eigen::Vector2d obs_P_vehicle)
+    : id(id), obsClass(obsClass), initial_pose(initial_pose), velocity(velocity), bb_data(bb_data), obs_P_vehicle(obs_P_vehicle) {
+        SetLocalVxs();
     }
 
-//public:
-    Obstacle() = default;
+    auto Id() const -> const std::string& { return id; }
+    auto ObsClass() const -> const std::string& { return obsClass; }
+    auto InitialPose() const -> const Pose& { return initial_pose; }
+    auto Velocity() const -> const Eigen::Vector2d& { return velocity; }
 
-    Obstacle(std::string name, Eigen::Vector2d position, double heading, double speed, double vel_dir, BoundingBoxData bb,
-             bool high_priority = false)
-            : id(std::move(name)),
-              bb_data(bb), higher_priority(high_priority) {
 
-                pose.position = position;
-                pose.heading = heading;
-                velocity.speed = speed;
-                velocity.angle = vel_dir;
-              }
 
-    // Compute local position of bb vxs
-    //void FindLocalVxs(const Eigen::Vector2d &vhPos);
+    // All of them
+    std::vector<Vx> GetVxs(TimeDouble time, bool compensate_localization_error = false) const;
+
+    Eigen::Vector2d GetPosition(TimeDouble time) const;
+
+    void Print(TimeDouble time = std::chrono::duration<double>(0)) const {
+        std::cerr << "Obstacle: " << std::endl;
+        std::cerr << "  - ID: " << id << "\n";
+        std::cerr << "  - Class: " << obsClass << "\n";
+        std::cerr << "  - Initial Pose: (" << initial_pose.Position().x() << ", " 
+                                        << initial_pose.Position().y() << ") " 
+                                        << initial_pose.Heading() / M_PI * 180 << "°\n";
+        std::cerr << "  - Velocity: (" << velocity.x() << ", " << velocity.y() << ")\n";
+        std::cerr << "  - Vehicle Position in Obs Frame: (" << obs_P_vehicle.x() 
+                << ", " << obs_P_vehicle.y() << ")\n";
+        
+        std::cerr << "  - Bounding Box Data: \n";
+        std::cerr << "      - Dimensions: " << bb_data.dim_x << " x " << bb_data.dim_y << "\n";
+        std::cerr << "      - Min Distance From Obstacle: " << bb_data.minDistFromObs << "\n";
+        std::cerr << "      - Reduction While Checking Path: " << bb_data.reductionWhileCheckingPath << "\n";
+        std::cerr << "      - Safe Max Gap: " << bb_data.safeMaxGap << "\n";
+        std::cerr << "      - Look Ahead Safety Span: " << bb_data.lookAheadSafetySpan << " seconds\n";
+        std::cerr << "      - Max Size: (Bow: " << bb_data.max_x_bow 
+                << ", Stern: " << bb_data.max_x_stern
+                << ", Starboard: " << bb_data.max_y_starboard 
+                << ", Port: " << bb_data.max_y_port << ")\n";
+        std::cerr << "      - Safety Size: (Bow: " << bb_data.safety_x_bow 
+                << ", Stern: " << bb_data.safety_x_stern
+                << ", Starboard: " << bb_data.safety_y_starboard 
+                << ", Port: " << bb_data.safety_y_port << ")\n";
+
+        std::cerr << "  - Vxs (wrt obs pose / wrt world at time " << time.count() << "): \n";
+        
+        auto abs_vxs = GetVxs(time);
+        for (size_t i = 0; i < 4; i++) {
+            auto local = vxs.at(i);
+            auto abs = abs_vxs.at(i);
+            
+            // Formatting numbers for better alignment
+            std::cerr << std::fixed << std::setprecision(1); // Set decimal precision
+
+            std::cerr << "      - " << std::setw(2) << static_cast<VxId>(local.first) << ":  " 
+                    << std::setw(6) << local.second.x() << "  " 
+                    << std::setw(6) << local.second.y() << "  /  " 
+                    << std::setw(6) << abs.second.x() << "  " 
+                    << std::setw(6) << abs.second.y() << "\n";
+        }
+        
+        std::cerr << "\n";
+    }  
+
+
+    void Log(std::ofstream& logFile) const{
+        logFile << "---" << std::endl;
+        logFile << "Obstacle_"<<id<<
+        "_Position_"<<initial_pose.Position().x()<<"_"<<initial_pose.Position().y()<<
+        "_Heading_"<<initial_pose.Heading()<<
+        "_Velocity_"<<velocity.x()<<"_"<<velocity.y();
+
+        auto abs_vxs = GetVxs(TimeDouble(0));
+        for(size_t i = 0;i<4;i++){
+            logFile<<"_Vx"<<abs_vxs[i].first<<"_"<<abs_vxs[i].second.x()<<"_"<<abs_vxs[i].second.y();
+        }
+        logFile<< std::endl;
+    }
+
 
 };
 
+}
 #endif //OAL_OBSTACLE_HPP

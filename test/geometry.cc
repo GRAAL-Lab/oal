@@ -5,16 +5,25 @@
 #include <iostream>
 #include <iomanip>
 
-#include "oal/devel/geometric_utilities.hpp"
+#include "oal/geometric_utilities.hpp"
 
 bool Test_LinePlaneIntersection(){
     Eigen::Vector3d p1(0, 0, 0);      // Line start
-    Eigen::Vector3d p2(10, 0, 1);      // Line end
-    Eigen::Vector3d planePoint(5, 0, 0); // A point on the plane
-    Eigen::Vector3d planeNormal(-1, 0, 0.1); // Plane normal
+    Eigen::Vector3d p2(7, 1.5, 0.71589105316381763);      // Line end
+    Eigen::Vector3d planePoint(77.0,  1.5,  0.0); // A point on the plane
+    Eigen::Vector3d planeNormal(0.0, 14.0,  0.0); // Plane normal
 
     Eigen::Vector3d intersection;
-    return FindLinePlaneIntersection(p1, p2, planePoint, planeNormal.normalized(), intersection);
+    bool test = FindLinePlaneIntersection(p1, p2, planePoint, planeNormal.normalized(), intersection);
+
+    if(test) return false;
+    // Eigen::Vector3d p1(0, 0, 0);      // Line start
+    // Eigen::Vector3d p2(10, 0, 1);      // Line end
+    // Eigen::Vector3d planePoint(5, 0, 0); // A point on the plane
+    // Eigen::Vector3d planeNormal(-1, 0, 0.1); // Plane normal
+
+    // Eigen::Vector3d intersection;
+    // return FindLinePlaneIntersection(p1, p2, planePoint, planeNormal.normalized(), intersection);
 }
 
 bool Test_InBB() {
@@ -137,12 +146,13 @@ int main() {
     test_results &= Test_SingleIntercept();
     test_results &= Test_TwoIntercepts();
     test_results &= Test_DirectIntercept();
+    test_results &= Test_LinePlaneIntersection();
 
 
     if( Test_ObserverFarAway &&
         Test_ObserverAligned &&
         Test_InBB &&
-        Test_LinePlaneIntersection &&
+        Test_LinePlaneIntersection() &&
         test_results
     ){
         std::cout << "- GEOMETRY: OK" << std::endl;

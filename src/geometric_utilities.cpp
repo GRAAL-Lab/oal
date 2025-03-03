@@ -1,4 +1,4 @@
-#include "oal/devel/geometric_utilities.hpp"
+#include "oal/geometric_utilities.hpp"
 
 
 /**
@@ -87,25 +87,18 @@ bool FindLinePlaneIntersection(const Eigen::Vector3d &p1,
 {
     //Algorithm from http://paulbourke.net/geometry/pointlineplane/
     Eigen::Vector3d lineDir = p2 - p1;   // Direction of the line
+    
+    double num = planeNormal.dot(planePoint - p1);
     double denom = planeNormal.dot(lineDir);
-
     // If denominator is near ZERO, the line is parallel to the plane (no intersection)
     if (std::abs(denom) < ZERO) return false;
 
-    double t = planeNormal.dot(planePoint - p1) / denom;
+    double t = num / denom;
 
     // If t is in [0,1], intersection occurs within the segment
     if (t >= 0.0 && t <= 1.0) {
         intersection = p1 + t * lineDir;
         return true;
-        // TODO ACTUAL COLLISION WITH:
-         // Get vertexes at time t'
-//         Eigen::Vector3d vertex1_position = vx1_pos + bb_direction * collision_time;
-//         Eigen::Vector3d vertex2_position = vx2_pos + bb_direction * collision_time;
-//         // Check if point is inside those two vertexes
-//         Eigen::Vector3d P1 = collision_point - vertex1_position;
-//         Eigen::Vector3d P2 = collision_point - vertex2_position;
-//         if (P1.dot(P2) <= 0) return true;
     }
     
     return false;  // Intersection is outside the segment

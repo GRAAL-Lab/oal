@@ -2,6 +2,7 @@
 #define GEOMETRIC_UTILITIES_HPP
 
 #include <eigen3/Eigen/Eigen>
+#include <iostream>
 
 #define ZERO 1e-5
 

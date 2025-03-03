@@ -4,9 +4,9 @@
 #include <memory>
 #include <fstream>
 
-#include "oal/devel/data_structs.hpp"
-#include "oal/devel/obstacle.hpp"
-#include "oal/devel/geometric_utilities.hpp"
+#include "oal/data_structs.hpp"
+#include "oal/obstacle.hpp"
+#include "oal/geometric_utilities.hpp"
 
 namespace oal {
 
@@ -48,7 +48,7 @@ public:
         std::cerr << "      - 2Goal: "<<costToGoal<<"\n";
         std::cerr << "      - Total: "<<GetTotalCost()<<"\n";       
         if (data.obs_ptr != nullptr) {
-            std::cerr << "  - Obs: " << data.obs_ptr->Id() << "/" << (VxId) data.vx <<"\n";
+            std::cerr << "  - Obs: " << data.obs_ptr->Id() << "/" << VxIdToString(data.vx) <<"\n";
         }
     }
 
@@ -64,25 +64,11 @@ public:
                             "_Time_"<<current->data.time.count()<<
                             "_Speed_"<<current->data.approachingSpeed;
             if(current->data.obs_ptr != nullptr)
-                logFile<<   "_Obstacle_"<<current->data.obs_ptr->Id()<<"_Vx_"<<current->data.vx;
+                logFile<<   "_Obstacle_"<<current->data.obs_ptr->Id()<<"_Vx_"<<VxIdToString(data.vx);
             logFile<< std::endl;
             current = current->parent_.get();  
             count++;          
         }
-        
-
-
-
-    //         // Describes the interception of the ASV with an obstacle vertex
-    // Eigen::Vector2d position;
-    // double heading; //this is the heading when on the node (used for heading change computation)
-    // std::chrono::duration<double> time =  std::chrono::seconds(0);
-    // double approachingSpeed{};
-    // std::shared_ptr<Obstacle> obs_ptr = nullptr;
-    // VxId vx = NA;
-
-        
-
     }
 
 };

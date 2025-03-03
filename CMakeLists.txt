@@ -31,10 +31,10 @@ add_custom_target(.ProjectFiles. SOURCES ${SOURCE_FILES})
 option(BUILD_TESTS "Compile tests" ON)
 
 add_library(oal SHARED
-        src/devel/generator.cpp
-        src/devel/geometric_utilities.cpp
-        src/devel/node.cpp
-        src/devel/path_evaluator.cpp
+        src/local_planner/generator.cpp
+        src/geometric_utilities.cpp
+        src/local_planner/node.cpp
+        src/local_planner/path_evaluator.cpp
         )
 
 # find dependencies
@@ -83,18 +83,18 @@ install(EXPORT oalConfig DESTINATION share/oal/cmake)
 export(TARGETS oal FILE oalConfig.cmake)
 
 if (BUILD_TESTS)
-    add_executable(geometry_test test/devel/geometry.cc src/devel/geometric_utilities.cpp)
+    add_executable(geometry_test test/geometry.cc src/geometric_utilities.cpp)
     target_link_libraries(geometry_test oal)
     add_test(geometry_test geometry_test)
 
-    add_executable(first_test 
-        test/devel/first.cc 
-        src/devel/generator.cpp
-        src/devel/node.cpp
-        src/devel/obstacle.cpp 
-        src/devel/path_evaluator.cpp
-        src/devel/geometric_utilities.cpp)
-    target_link_libraries(first_test oal)
-    add_test(first_test first_test)    
+    add_executable(local_planner_test 
+        test/local_planner/first.cc 
+        src/local_planner/generator.cpp
+        src/local_planner/node.cpp
+        src/obstacle.cpp 
+        src/local_planner/path_evaluator.cpp
+        src/geometric_utilities.cpp)
+    target_link_libraries(local_planner_test oal)
+    add_test(local_planner_test local_planner_test)    
 
 endif (BUILD_TESTS)
