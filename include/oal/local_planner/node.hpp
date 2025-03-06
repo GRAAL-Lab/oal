@@ -10,8 +10,6 @@
 
 namespace oal {
 
-
-
 class AStarNode {
 
     std::shared_ptr<AStarNode> parent_ = nullptr;

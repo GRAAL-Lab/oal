@@ -40,6 +40,9 @@ int main() {
     vh_pose = Pose({0,0}, 0.6);
     goal = {150,0};
 
+    std::vector<std::string> highPriorityList = {"sailboat"};
+    oal::PathEvaluator::SetHighPriorityObstacles(highPriorityList);
+
     // test_results &= Test_Node();
     // test_results &= Test_Obstacle();
     // test_results &= Test_NodeObstacles();
@@ -91,10 +94,10 @@ bool Test_GeneratorWithObstacles(){
 
     std::vector<ObsPtr> obstacles;
     Pose obs1_pose = {{0,5}, 0};
-    auto obs1 = Obstacle("obs1", "", obs1_pose,{0,0}, bb_data_default(), obs1_pose.FromWorld2ThisFrame(vh_pose.Position()));
+    auto obs1 = Obstacle("obs1", "", obs1_pose,{0,0}, bb_data_default(),vh_pose.Position());
     obstacles.push_back(std::make_shared<Obstacle>(obs1));
     Pose obs2_pose = {{70,5}, 0};
-    auto obs2 = Obstacle("obs2", "", obs2_pose,{0,0}, bb_data_default(), obs2_pose.FromWorld2ThisFrame(vh_pose.Position()));
+    auto obs2 = Obstacle("obs2", "", obs2_pose,{0,0}, bb_data_default(), vh_pose.Position());
     obstacles.push_back(std::make_shared<Obstacle>(obs2));
 
     AstarPath path;
@@ -125,7 +128,7 @@ bool Test_Specific(bool print){
     };
 
     for (const auto& [obs_id, obs_pose, obs_vel] : obstacle_data) {
-        auto obs = Obstacle(obs_id, "", obs_pose, obs_vel, bb_data_default(), obs_pose.FromWorld2ThisFrame(vh_pose.Position()));
+        auto obs = Obstacle(obs_id, "", obs_pose, obs_vel, bb_data_default(), vh_pose.Position());
         obstacles.push_back(std::make_shared<Obstacle>(obs));
     }
 
@@ -164,6 +167,7 @@ bool Test_Random(int iterations, bool print){
     std::cerr<<"- Random test\n";
     int count;
     while(iterations){
+        pp.colregsCompliant = !pp.colregsCompliant;
         auto g = Generator(vh_data, pp, ds);
         if(iterations % 100 == 0) std::cerr<<".";
         if(iterations % 10000 == 0) std::cerr<<"\n";
@@ -173,7 +177,7 @@ bool Test_Random(int iterations, bool print){
             //Eigen::Vector2d obs_vel = {0,0};
             Eigen::Vector2d obs_vel = {GetRandomInRange(0,1), GetRandomInRange(0,1)};
             std::string obs_id = ""+std::to_string(i);
-            auto obs = Obstacle(obs_id, "", obs_pose, obs_vel, bb_data_default(), obs_pose.FromWorld2ThisFrame(vh_pose.Position()));
+            auto obs = Obstacle(obs_id, "", obs_pose, obs_vel, bb_data_default(), vh_pose.Position());
             obstacles.push_back(std::make_shared<Obstacle>(obs));
         }
 
@@ -219,8 +223,8 @@ bool Test_Random(int iterations, bool print){
 bool Test_NodeObstacles(bool print){
     Pose obs1_pose = {{10,5}, 0};
     Pose obs2_pose = {{30,5}, 0};
-    auto obs1 = Obstacle("obs1", "", obs1_pose,{0,0}, bb_data_default(), obs1_pose.FromWorld2ThisFrame(vh_pose.Position()));
-    auto obs2 = Obstacle("obs2", "", obs2_pose,{0,0}, bb_data_default(), obs2_pose.FromWorld2ThisFrame(vh_pose.Position()));
+    auto obs1 = Obstacle("obs1", "", obs1_pose,{0,0}, bb_data_default(), vh_pose.Position());
+    auto obs2 = Obstacle("obs2", "", obs2_pose,{0,0}, bb_data_default(), vh_pose.Position());
     auto start = make_shared<AStarNode>(AStarNode(encounter_data_default(vh_pose.Position(),0,0)));
     start->SetCosts(vh_data_default(), goal);
     auto second = make_shared<AStarNode>(AStarNode(encounter_data_default({10,0},10,1, make_shared<Obstacle>(obs1),FR), start));
@@ -288,12 +292,14 @@ BoundingBoxData bb_data_default(){
     bb_data.dim_x = 10;
     bb_data.dim_y = 3;
 
+    bb_data.gain = 3;
+
     bb_data.minDistFromObs = 1;
     bb_data.reductionWhileCheckingPath = 1; // TODO this could depend only on the ASV capability of staying on the predicted course?
     bb_data.safeMaxGap = 0;
     bb_data.lookAheadSafetySpan = 0; //seconds
 
-    bb_data.Set(3, {0,0}, "", 0, 0, 0, 0, 0, 0, 0);
+    bb_data.Set({0,0}, "", 0, 0, 0, 0, 0, 0, 0);
     return bb_data;
 }
 

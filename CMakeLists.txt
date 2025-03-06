@@ -32,9 +32,10 @@ option(BUILD_TESTS "Compile tests" ON)
 
 add_library(oal SHARED
         src/local_planner/generator.cpp
-        src/geometric_utilities.cpp
         src/local_planner/node.cpp
         src/local_planner/path_evaluator.cpp
+        src/obstacle.cpp
+        src/geometric_utilities.cpp
         )
 
 # find dependencies

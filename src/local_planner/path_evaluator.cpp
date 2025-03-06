@@ -1,10 +1,12 @@
 #include "oal/local_planner/path_evaluator.hpp"
 
-bool oal::PathEvaluator::RuleCompliantMotion(const NodePtr& start, NodePtr& goal) {
-    // Check only if colregs compliance is requested
-    if (goal->data.obs_ptr->Velocity().norm() <= ZERO_VELOCITY) return true;
-    
+std::vector<std::string> oal::PathEvaluator::highPriorityObstacles;
+bool oal::PathEvaluator::isHPListSet = false;
 
+bool oal::PathEvaluator::RuleCompliantMotion(const NodePtr& start, NodePtr& goal) {
+
+    if (goal->data.obs_ptr == nullptr || goal->data.obs_ptr->Velocity().norm() <= ZERO_VELOCITY) return true;
+    
     /*auto it = std::find(goal.overtakingObsList.begin(), goal.overtakingObsList.end(), goal.obs_ptr->id);
     if( it != goal.overtakingObsList.end()){
       // Moving to overtaking obs
@@ -22,54 +24,63 @@ bool oal::PathEvaluator::RuleCompliantMotion(const NodePtr& start, NodePtr& goal
     Eigen::Vector2d path = goal->data.position - start->data.position;
     double theta = GetBearing(path, goal->data.obs_ptr->InitialPose().Heading());
     // Check colregs depending on situation
-    if (abs(theta) <= HeadOnAngle) {
-        // head on
+    auto encounterType = EncounterType(theta);
+    if(encounterType == EncounterTypes::HEAD_ON){
         if (goal->data.vx == FR || goal->data.vx == RR) {
             // should be on left
             return false;
         }
         //goal.currentObsLimitedVxs.push_back(FR);
-    } else {
-        if (abs(theta) >= OvertakingAngle) {
-            // overtaking
-            // if (goal.data.vx == FR) {
-            //     goal.currentObsLimitedVxs.push_back(RR);
-            //     goal.currentObsLimitedVxs.push_back(FL);
-            // }
-            // if (goal.data.vx == FL) {
-            //     goal.currentObsLimitedVxs.push_back(FR);
-            // }
-            //goal.overtakingObsList.push_back(goal.obs_ptr->id);
-            // avoid future crossings
-        } else {
-            if (theta < 0) {
-                // crossing from left, give way
-                if (goal->data.vx == FR || goal->data.vx == FL) {
-                    // should give way
-                    return false;
-                }
-                // goal.currentObsLimitedVxs.push_back(FR);
-                // goal.currentObsLimitedVxs.push_back(FL);
-            } else {
-                if (theta > 0) {
-                    // crossing from right, stand on but
-                    //  if execution comes here, obs is high priority,
-                    //  so give way but avoid rear vxs
-                    //goal.currentObsLimitedVxs.push_back(RR);  // avoid the maneuver to become a head on
-                    if (goal->data.vx == RR || goal->data.vx == RL) {
-                        return false;
-                    }
-                }
+    }else if(encounterType == EncounterTypes::VH_OVERTAKING){
+        // if (goal.data.vx == FR) {
+        //     goal.currentObsLimitedVxs.push_back(RR);
+        //     goal.currentObsLimitedVxs.push_back(FL);
+        // }
+        // if (goal.data.vx == FL) {
+        //     goal.currentObsLimitedVxs.push_back(FR);
+        // }
+        //goal.overtakingObsList.push_back(goal.obs_ptr->id);
+        // avoid future crossings
+    }else if(encounterType == EncounterTypes::VH_CROSSING_FROM_LEFT){
+        // give way
+        if (goal->data.vx == FR || goal->data.vx == FL) {
+            // should give way
+            return false;
+        }
+        // goal.currentObsLimitedVxs.push_back(FR);
+        // goal.currentObsLimitedVxs.push_back(FL);
+    }else if(encounterType == EncounterTypes::VH_CROSSING_FROM_RIGHT){
+        if(HasHigherPriority(goal->data.obs_ptr->ObsClass())){
+            // crossing from right, should be stand on but
+            //  if execution comes here, obs is high priority,
+            //  so give way but avoid rear vxs
+            //goal.currentObsLimitedVxs.push_back(RR);  // avoid the maneuver to become a head on
+            if (goal->data.vx == RR || goal->data.vx == RL) {
+                return false;
             }
         }
     }
+    
     return true;
 }
 
-bool oal::PathEvaluator::HasHigherPriority(std::string obsClass){
-    // Check if the obstacle has higher priority than own ship
-    std::cerr<<"[WARNING] HasHigherPriority not implemented"<<std::endl;
-    return false;
+bool oal::PathEvaluator::HasHigherPriority(const std::string& obsClass) {
+    if(!isHPListSet) throw std::runtime_error("Calling HasHigherPriority() but HighPriorityList not set");
+    return std::find(highPriorityObstacles.begin(), highPriorityObstacles.end(), obsClass) != highPriorityObstacles.end();
+}
+
+void oal::PathEvaluator::SetHighPriorityObstacles(const std::vector<std::string>& obstacles) {
+    highPriorityObstacles = obstacles;
+    isHPListSet = true;
+}
+
+std::string oal::PathEvaluator::EncounterType(double angle){
+    //angle is the angle between obs forward axis and ownVh heading upon approach (on vx)
+    if(abs(angle) <= EncounterTypes::HeadOnAngle) return EncounterTypes::HEAD_ON;
+    if(abs(angle) >= EncounterTypes::OvertakingAngle) return EncounterTypes::VH_OVERTAKING;
+    if(angle < 0) return EncounterTypes::VH_CROSSING_FROM_LEFT;
+    //if(angle > 0) 
+    return EncounterTypes::VH_CROSSING_FROM_RIGHT;
 }
 
 bool oal::PathEvaluator::CollisionWithObs(const NodePtr& start, const NodePtr& goal, const ObsPtr& obs, std::vector<Eigen::Vector3d>& collisions, bool colregs){
@@ -97,7 +108,7 @@ bool oal::PathEvaluator::CollisionWithObs(const NodePtr& start, const NodePtr& g
     if (colregs) {
         // Angle between
         double theta = GetBearing(Eigen::Vector2d(path.x(), path.y()), obs->InitialPose().Heading());
-        if (theta > HeadOnAngle && theta < OvertakingAngle && !HasHigherPriority(obs->ObsClass()) &&
+        if(EncounterType(theta) == EncounterTypes::VH_CROSSING_FROM_RIGHT && !HasHigherPriority(obs->ObsClass()) &&
             obs->Velocity().norm() > ZERO_VELOCITY) {
             // crossing from right, stand on
             return false;

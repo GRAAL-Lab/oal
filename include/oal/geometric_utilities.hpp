@@ -4,7 +4,7 @@
 #include <eigen3/Eigen/Eigen>
 #include <iostream>
 
-#define ZERO 1e-5
+#define ZERO_NUMERICAL 1e-5
 
 double GetBearing(const Eigen::Vector2d& direction, double observer_heading);
 

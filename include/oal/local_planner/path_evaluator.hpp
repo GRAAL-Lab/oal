@@ -4,24 +4,33 @@
 #include "oal/geometric_utilities.hpp"
 #include "oal/obstacle.hpp"
 #include "oal/local_planner/node.hpp"
+#include "oal/data_structs.hpp"
 
-#define HeadOnAngle (15*(M_PI/180))
-#define OvertakingAngle (112*(M_PI/180))
 #define ZERO_VELOCITY 0.01
 
 namespace oal{
     
 
     class PathEvaluator{
+    private:
+        static std::vector<std::string> highPriorityObstacles;
+        static bool isHPListSet;
 
-            static bool HasHigherPriority(std::string obsClass);
+        // Check if an obstacle class has higher priority
+        static bool HasHigherPriority(const std::string& obsClass);
 
-        public:
+    public:
 
-            static bool CollisionWithObs(const NodePtr& start, const NodePtr& goal, const ObsPtr& obs, std::vector<Eigen::Vector3d>& collisions, bool colregs = false);
+        static void SetHighPriorityObstacles(const std::vector<std::string>& obstacles);
 
-            static bool RuleCompliantMotion(const NodePtr& start, NodePtr& goal);
-    
+        static std::string EncounterType(double angle);
+
+    public:
+
+        static bool CollisionWithObs(const NodePtr& start, const NodePtr& goal, const ObsPtr& obs, std::vector<Eigen::Vector3d>& collisions, bool colregs = false);
+
+        static bool RuleCompliantMotion(const NodePtr& start, NodePtr& goal);
+
             
     };
 

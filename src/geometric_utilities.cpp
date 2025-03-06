@@ -13,7 +13,7 @@
  * @throws std::invalid_argument If the direction vector is (0,0).
  */
 double GetBearing(const Eigen::Vector2d& direction, double observer_heading) {
-    if (direction.isZero(1e-10)) {  // Handle zero vector case with a small tolerance
+    if (direction.norm() <= ZERO_NUMERICAL) {  // Handle zero vector case with a small tolerance
         throw std::invalid_argument("Direction vector passed to GetBearing cannot be (0,0)");
     }
     
@@ -29,7 +29,7 @@ void FindInterceptPoints(const Eigen::Vector2d &p1, double p1_speed, const Eigen
     std::vector<double> t_instants;
     Eigen::Vector3d p2_velocity(p2_vel.x(), p2_vel.y(), 1);
     auto distance = p2 - p1;
-    if(p2_vel.norm() < ZERO) { 
+    if(p2_vel.norm() < ZERO_NUMERICAL) { 
         t_instants.push_back(distance.norm() / p1_speed);
     } else {
         double det = pow(p1_speed, 2) + 1;
@@ -37,14 +37,14 @@ void FindInterceptPoints(const Eigen::Vector2d &p1, double p1_speed, const Eigen
         double c1 = -(p2_velocity.x() * distance.x() + p2_velocity.y() * distance.y()) / det;
         double c0 = -(pow(distance.x(), 2) + pow(distance.y(), 2)) / det;
         double delta = pow(c1, 2) - c0 * c2;
-        if (abs(c2) > ZERO && delta >= 0) {
+        if (abs(c2) > ZERO_NUMERICAL && delta >= 0) {
             // 2 points
             double t1 = (-c1 + sqrt(delta)) / c2;
             double t2 = (-c1 - sqrt(delta)) / c2;
             if (t1 > 0) t_instants.push_back(t1);
-            if (t2 > 0 && abs(t1 - t2) > ZERO) t_instants.push_back(t2);
+            if (t2 > 0 && abs(t1 - t2) > ZERO_NUMERICAL) t_instants.push_back(t2);
         } else {
-            if (abs(c2) <= ZERO && abs(c1) > ZERO) {
+            if (abs(c2) <= ZERO_NUMERICAL && abs(c1) > ZERO_NUMERICAL) {
                 // 1 point
                 double t = -c0 / (2 * c1);
                 if (t > 0) t_instants.push_back(t);
@@ -91,7 +91,7 @@ bool FindLinePlaneIntersection(const Eigen::Vector3d &p1,
     double num = planeNormal.dot(planePoint - p1);
     double denom = planeNormal.dot(lineDir);
     // If denominator is near ZERO, the line is parallel to the plane (no intersection)
-    if (std::abs(denom) < ZERO) return false;
+    if (std::abs(denom) < ZERO_NUMERICAL) return false;
 
     double t = num / denom;
 
@@ -141,7 +141,7 @@ std::vector<bool> ComputeVisibleVertices(const Eigen::Vector2d& observer, const 
     
     for (const auto& vertex : vertexes) {
         Eigen::Vector2d ref_to_vertex = vertex - observer;
-        if (ref_to_vertex.norm() <= ZERO) continue;
+        if (ref_to_vertex.norm() <= ZERO_NUMERICAL) continue;
         
         double cross = ref_to_target.x() * ref_to_vertex.y() - ref_to_target.y() * ref_to_vertex.x();
         double sign = (cross >= 0) ? 1.0 : -1.0;

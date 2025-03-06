@@ -60,7 +60,7 @@ void oal::AStarNode::SetCosts(VehicleData vh_data, Eigen::Vector2d goal){
     Eigen::Vector2d dist_to_goal = goal - data.position;
     costToGoal = dist_to_goal.norm() / *std::max_element(std::begin(vh_data.velocities), std::end(vh_data.velocities));
 
-    if(vh_data.max_yaw_rate > ZERO){
+    if(vh_data.max_yaw_rate > ZERO_NUMERICAL){
         // The time contribution of a node is also:
         //    - how much it takes to change course to reach this node
         //    - how much it takes to change course to reach goal from this node

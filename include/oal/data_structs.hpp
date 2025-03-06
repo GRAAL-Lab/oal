@@ -111,7 +111,14 @@ struct PruningParams{
     double sameTimeThreshold = 0.1;
 };
 
-
+namespace EncounterTypes {
+    inline const std::string HEAD_ON = "HEAD_ON";
+    inline const std::string VH_OVERTAKING = "VH_OVERTAKING";
+    inline const std::string VH_CROSSING_FROM_LEFT = "VH_CROSSING_FROM_LEFT";
+    inline const std::string VH_CROSSING_FROM_RIGHT = "VH_CROSSING_FROM_RIGHT";
+    inline const double HeadOnAngle = (15*(M_PI/180));
+    inline const double OvertakingAngle = (112*(M_PI/180));
+}
 
 namespace NodeSearch {
     namespace DiscoverySource {
@@ -145,6 +152,8 @@ struct BoundingBoxData {
     double dim_x;
     double dim_y;
 
+    //static
+    double gain;
     double minDistFromObs = 6;
     double reductionWhileCheckingPath = 1; // TODO this could depend only on the ASV capability of staying on the predicted course?
     double safeMaxGap = 0;
@@ -164,7 +173,6 @@ struct BoundingBoxData {
 
 
     void Set( 
-        double k,
         const Eigen::Vector2d& velocity, 
         std::string obs_class, 
         double size_x_sigma,
@@ -184,14 +192,14 @@ struct BoundingBoxData {
 
         double min_safety_dim = reductionWhileCheckingPath + minDistFromObs;
 
-        safety_x_bow = min_safety_dim + (dim_x + k*size_x_sigma + k*vel_x_sigma*lookAheadSafetySpan)/2;
-        safety_x_stern = min_safety_dim + (dim_x + k*size_x_sigma)/2;
+        safety_x_bow = min_safety_dim + (dim_x + gain*size_x_sigma + gain*vel_x_sigma*lookAheadSafetySpan)/2;
+        safety_x_stern = min_safety_dim + (dim_x + gain*size_x_sigma)/2;
         //std::cerr<<" dim: "<<dim_x<<"\n safety x bow: "<<safety_x_bow<<"\n safety x stern: "<<safety_x_bow<<"\n";
-        safety_y_port = safety_y_starboard = min_safety_dim + (dim_y + k*size_y_sigma + k*vel_y_sigma*lookAheadSafetySpan)/2;
+        safety_y_port = safety_y_starboard = min_safety_dim + (dim_y + gain*size_y_sigma + gain*vel_y_sigma*lookAheadSafetySpan)/2;
 
-        max_x_bow = safeMaxGap + safety_x_bow + k*pose_x_sigma / 2;
-        max_x_stern = safeMaxGap + safety_x_stern + k*pose_x_sigma / 2;
-        max_y_port = max_y_starboard = safeMaxGap + safety_y_port + k*pose_y_sigma / 2;
+        max_x_bow = safeMaxGap + safety_x_bow + gain*pose_x_sigma / 2;
+        max_x_stern = safeMaxGap + safety_x_stern + gain*pose_x_sigma / 2;
+        max_y_port = max_y_starboard = safeMaxGap + safety_y_port + gain*pose_y_sigma / 2;
 
         //reductionWhileCheckingPath = 5; 
         

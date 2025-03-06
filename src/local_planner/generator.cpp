@@ -436,8 +436,9 @@ void oal::Generator::LogObstacles(const std::vector<ObsPtr>& obstacles){
 }
 
 void oal::Generator::ReconstructPath(const NodePtr& goal, AstarPath& path_) {
+    //FINAL PATH DOES NOT HAVE THE START NODE NOW
     auto node = goal;
-    while (node != nullptr) {
+    while (node->Parent() != nullptr) {
         if (ds_.printPath) node->Print();
         path_.Data().push_front(node);
         node = node->Parent();

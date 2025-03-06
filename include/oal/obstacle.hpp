@@ -28,8 +28,18 @@ class Obstacle{
     
 public: 
 
-    Obstacle(std::string id, std::string obsClass, Pose initial_pose, Eigen::Vector2d velocity, BoundingBoxData bb_data, Eigen::Vector2d obs_P_vehicle)
-    : id(id), obsClass(obsClass), initial_pose(initial_pose), velocity(velocity), bb_data(bb_data), obs_P_vehicle(obs_P_vehicle) {
+    Obstacle(std::string id, std::string obsClass, Pose initial_pose, Eigen::Vector2d velocity, BoundingBoxData bb_data, Eigen::Vector2d vehicle)
+    : id(id), obsClass(obsClass), initial_pose(initial_pose), velocity(velocity), bb_data(bb_data){
+        obs_P_vehicle = initial_pose.FromWorld2ThisFrame(vehicle);
+        SetLocalVxs();
+    }
+    
+    Obstacle(const ObsPtr& other, TimeDouble timeDiff, Eigen::Vector2d vehicle)
+    : id(other->Id()), obsClass(other->ObsClass()), velocity(other->Velocity()), bb_data(other->bb_data)
+    {
+        // Same obstacle but after/before timeDiff, with different vehicle pos
+        initial_pose = Pose(other->GetPosition(timeDiff), other->InitialPose().Heading());
+        obs_P_vehicle = initial_pose.FromWorld2ThisFrame(vehicle);
         SetLocalVxs();
     }
 
@@ -37,6 +47,7 @@ public:
     auto ObsClass() const -> const std::string& { return obsClass; }
     auto InitialPose() const -> const Pose& { return initial_pose; }
     auto Velocity() const -> const Eigen::Vector2d& { return velocity; }
+    auto BBData() const -> const BoundingBoxData& {return bb_data; }
 
 
 
