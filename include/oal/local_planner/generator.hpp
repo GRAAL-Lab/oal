@@ -15,6 +15,29 @@
 
 namespace oal{
 
+struct NodeLogger{
+    bool log = false;
+    std::string dirPath = "NULL";
+    std::string fileName = "NULL";
+
+    void Init(std::ofstream& logNodeFile) {
+        if (log) {
+            if (logNodeFile.is_open()) logNodeFile.close();
+            
+            if (dirPath == "NULL" || fileName == "NULL") {
+                throw std::runtime_error("[oal] LOG NODES PATH OR FILE NAME NOT SET");
+            }
+            
+            std::string logFilePath = dirPath + "/" + fileName;
+            logNodeFile.open(logFilePath, std::ofstream::trunc);
+            
+            if (!logNodeFile.is_open()) {
+                throw std::runtime_error("[oal] FAILED TO OPEN LOG FILE: " + logFilePath);
+            }
+        }
+    }
+};
+
 struct DebugSettings{
     bool printCurrentNode = false;
     bool printPath = false;
@@ -22,11 +45,15 @@ struct DebugSettings{
     bool printNodeEvolutionStats = false;
     bool printPathUnsafetyReason = false;
 
-    bool logNodes = false;
-    std::string logNodesPathFile = "WARNING_LOG_NODES_PATH_FILE_NOT_SET.txt";
+    NodeLogger completePath;
+    NodeLogger failedPath;
+    NodeLogger validPath;
+    NodeLogger notValidPath;
+
+    NodeLogger freeLogger;
 
     bool logObstacles = false;
-    std::string logObstaclesPathFile = "WARNING_LOG_OBSTACLES_PATH_FILE_NOT_SET.txt";
+    std::string logObstaclesPathFile = "NULL";
 
     bool printNodesStats = false;
 };
@@ -37,8 +64,13 @@ class Generator
     VehicleData vh_data_; // vehicle capabilities, not time dependent
     PruningParams pruning_params_; // exploration settings
 
-    DebugSettings ds_;
-    std::ofstream logNodesFile;
+    std::shared_ptr<DebugSettings> ds_;
+    std::ofstream logNodesCPFile;
+    std::ofstream logNodesFPFile;
+    std::ofstream logNodesVPFile;
+    std::ofstream logNodesNVPFile;
+    std::ofstream logNodesFreeFile;
+
     std::ofstream logObstaclesFile;
 
     bool GetFirstNodes(const Pose& start_, const Eigen::Vector2d& goal_, const std::vector<ObsPtr>& obstacles_, NodeSet& output, PathReport& response);
@@ -67,18 +99,17 @@ class Generator
 
 public:
 
-    Generator(VehicleData vh_data, PruningParams pruning_params, DebugSettings ds = {}) 
+    Generator(VehicleData vh_data, PruningParams pruning_params, std::shared_ptr<DebugSettings> ds = nullptr) 
         : vh_data_(vh_data), pruning_params_(pruning_params), ds_(ds) {
-
+            
+            if(ds_ == nullptr) ds_ = std::make_shared<DebugSettings>();
             //Debug settings
-            if(ds_.logNodes){
-                if (logNodesFile.is_open()) logNodesFile.close();
-                logNodesFile.open(ds_.logNodesPathFile, std::ofstream::trunc);
-            } 
-            if(ds_.logObstacles){
-                if (logObstaclesFile.is_open()) logObstaclesFile.close();
-                logObstaclesFile.open(ds_.logObstaclesPathFile, std::ofstream::trunc);
-            } 
+            ds_->completePath.Init(logNodesCPFile);
+            ds_->failedPath.Init(logNodesFPFile);
+            ds_->validPath.Init(logNodesVPFile);
+            ds_->notValidPath.Init(logNodesNVPFile);
+            ds_->freeLogger.Init(logNodesFreeFile);
+
         }
 
     //auto Obstacles() -> std::vector<ObsPtr>& { return obstacles_; }

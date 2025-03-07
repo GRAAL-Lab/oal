@@ -4,7 +4,9 @@ plot_nodes_and_obstacles;
 %% Main function: read nodes & obstacles and plot both
 function plot_nodes_and_obstacles()
     % Adjust file paths as needed
-    nodesFile = '/home/graal/graal_ws/oal/logs/nodes.txt';
+    % /home/graal/ros2_ws/log/avoidance_logs/nodes";
+    %/home/graal/graal_ws/oal/logs/nodes.txt
+    nodesFile = '/home/graal/ros2_ws/log/avoidance_logs/nodes/completePathNodes.txt';
     obsFile   = '/home/graal/graal_ws/oal/logs/obstacles.txt';
     
     nodes = read_nodes_from_file(nodesFile);

@@ -32,6 +32,11 @@ public:
     void GetExitVxs(std::vector<Vx> &allowedVxs) const;
     // void FindExitVxs(std::vector<vx_id> &allowedVxs) const;
 
+    int NumberOfParents() const {
+        if(parent_ != nullptr) return 1+parent_->NumberOfParents();
+        return 0;
+    }
+
     void Print(std::string id = "") const {
         if(parent_!= nullptr) {
             std::cerr << "Node"<<id<<": " << std::endl;
@@ -54,7 +59,7 @@ public:
         logFile << "---" << std::endl;
         logFile << "Trace_"<<id<<std::endl;
         const AStarNode* current = this;
-        int count = 1;
+        int count = current->NumberOfParents();
         while(current != nullptr){
             logFile <<      "_Node_"<<count<<
                             "_Position_"<<current->data.position.x()<<"_"<<current->data.position.y()<<
@@ -65,7 +70,7 @@ public:
                 logFile<<   "_Obstacle_"<<current->data.obs_ptr->Id()<<"_Vx_"<<VxIdToString(data.vx);
             logFile<< std::endl;
             current = current->parent_.get();  
-            count++;          
+            count--;          
         }
     }
 

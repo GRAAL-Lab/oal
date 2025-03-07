@@ -12,7 +12,8 @@
 using namespace std;
 using namespace oal;
 
-DebugSettings ds;
+
+std::shared_ptr<DebugSettings> ds;
 Pose vh_pose;
 Eigen::Vector2d goal;
 PruningParams pp;
@@ -29,13 +30,20 @@ bool Test_Specific(bool print = false);
 int main() {
     bool test_results = true;
 
-    ds.printCurrentNode = false;
-    ds.printPath = false;
-    ds.logNodes = true;
-    ds.logNodesPathFile = "/home/graal/graal_ws/oal/logs/nodes.txt";
-    ds.logObstacles = true;
-    ds.logObstaclesPathFile = "/home/graal/graal_ws/oal/logs/obstacles.txt";
-    ds.printNodesStats = true;
+    ds = std::make_shared<DebugSettings>();
+
+    ds->printCurrentNode = false;
+    ds->printPath = false;
+
+    ds->completePath.log = true;
+    // NodeLogger failedPath;
+    // NodeLogger validPath;
+    // NodeLogger notValidPath;
+    // ds->logNodes = true;
+    //ds->logNodesPathFile = "/home/graal/graal_ws/oal/logs/nodes.txt";
+    ds->logObstacles = true;
+    ds->logObstaclesPathFile = "/home/graal/graal_ws/oal/logs/obstacles.txt";
+    ds->printNodesStats = true;
 
     vh_pose = Pose({0,0}, 0.6);
     goal = {150,0};
@@ -310,7 +318,7 @@ VehicleData vh_data_default(){
 }
 
 void PrintVxs(std::vector<Vx> vxs){
-    if(!ds.printComputedVxs) return;
+    if(!ds->printComputedVxs) return;
     for(const auto& vx:vxs){
         cerr<<vx.first<<": "<<vx.second.transpose()<<"\n";
     }

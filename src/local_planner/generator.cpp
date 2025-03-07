@@ -8,7 +8,7 @@ oal::PathReport oal::Generator::FindPath(const Pose& start_, Eigen::Vector2d goa
     NodeSet openSet; //Nodes yet to be explored
     NodeSet closedSet; //Explored nodes
     NodeSet reachableSet; //Every safe/possible node to reach 
-    if(ds_.logObstacles) LogObstacles(obstacles_);
+    if(ds_->logObstacles) LogObstacles(obstacles_);
 
 
     if(!GetFirstNodes(start_, goal_, obstacles_, openSet, response)) return response;
@@ -29,8 +29,8 @@ oal::PathReport oal::Generator::FindPath(const Pose& start_, Eigen::Vector2d goa
         auto current_it = GetBestFromSet(openSet);
         current = *current_it;
 
-        //remove aimtogoal first: if(ds_.logNodes) current->Log(logNodesFile);
-        if(ds_.printCurrentNode) current->Print(" Current");
+        //remove aimtogoal first: if(ds_->logNodes) current->Log(logNodesFile);
+        if(ds_->printCurrentNode) current->Print(" Current");
 
         // check final
         if ((current->data.position - goal_).norm() < pruning_params_.samePositionThreshold) {
@@ -60,8 +60,8 @@ oal::PathReport oal::Generator::FindPath(const Pose& start_, Eigen::Vector2d goa
 
     // Check if the current node is close enough to the goal
     if ((current->data.position - goal_).norm() < pruning_params_.samePositionThreshold) {
-        if (ds_.logNodes) current->Log(logNodesFile, "FinalPath");
-        if (ds_.printPath) std::cerr << "Here is the path:\n";
+        if (ds_->completePath.log) current->Log(logNodesCPFile, "FinalPath");
+        //if (ds_->printPath) std::cerr << "Here is the path:\n";
 
         ReconstructPath(current, path_);
         
@@ -70,7 +70,7 @@ oal::PathReport oal::Generator::FindPath(const Pose& start_, Eigen::Vector2d goa
     }
 
     // Print node statistics if enabled
-    if (ds_.printNodesStats) PrintNodeStats(closedSet);
+    if (ds_->printNodesStats) PrintNodeStats(closedSet);
 
     // Select the best candidate from the reachable set
     auto best_candidate_it = GetBestFromSet(reachableSet);
@@ -93,7 +93,7 @@ oal::PathReport oal::Generator::FindPath(const Pose& start_, Eigen::Vector2d goa
     }
 
     // If no significant progress, return failure
-    if (ds_.logNodes) current->Log(logNodesFile, "End of code");
+    if (ds_->failedPath.log) current->Log(logNodesFPFile, "End of code");
     response.result = SearchResult::FAIL;
     response.failMsg = "Reached end of code, usually to many obs at starting position";
     return response;
@@ -103,7 +103,7 @@ oal::PathReport oal::Generator::FindPath(const Pose& start_, Eigen::Vector2d goa
 bool oal::Generator::IsPathValid(AstarPath path, const Pose& vehicle, const std::vector<ObsPtr>& obstacles_, Eigen::Vector2d &unreachable_wp){
     // the waypoint should be just the ones left to reach, not the whole path returned by the library
     if (path.Data().empty()) {
-        if(ds_.printPathUnsafetyReason) std::cerr << "OAL: PATH IS EMPTY -> CHECK = FALSE" << std::endl;
+        if(ds_->printPathUnsafetyReason) std::cerr << "OAL: PATH IS EMPTY -> CHECK = FALSE" << std::endl;
         return false;
     }
     
@@ -121,13 +121,16 @@ bool oal::Generator::IsPathValid(AstarPath path, const Pose& vehicle, const std:
             std::vector<Eigen::Vector3d> collisions;
             if(PathEvaluator::CollisionWithObs(start, target, obs, collisions, false)){
                 unreachable_wp = target->data.position;
-                if(ds_.printPathUnsafetyReason) 
+                if(ds_->notValidPath.log) target->Log(logNodesNVPFile, "Cannot reach target anymore");
+                if(ds_->printPathUnsafetyReason) 
                     std::cerr<<"Cannot reach wp: "<<unreachable_wp.transpose()<<std::endl;
                 return false;
             }
         }
 
         start = target;
+
+        if(path.Data().empty()) if(ds_->validPath.log) target->Log(logNodesVPFile, "Valid Path");
     }
     return true;
 }
@@ -215,7 +218,8 @@ bool oal::Generator::GetNodesToGoal(const NodePtr& current, const Eigen::Vector2
         std::shared_ptr<AStarNode> goal_node = std::make_shared<AStarNode>(data, current); // just for isInBB routine
 
         std::vector<ObsPtr> so;
-        if(IsInBB(data.time, goal_, obstacles_, so)) {//continue;
+        if(IsInBB(data.time, goal_, obstacles_, so)) {
+            if(!pruning_params_.stopSearchIfGoalInBB) continue;
             // Get the closest point to goal which is out of any surrounding bb
             for(const auto& obs : so){
                 std::vector<Eigen::Vector3d> collisions;
@@ -316,10 +320,10 @@ oal::NodeSet oal::Generator::EvaluateNodes(NodeSet& successors, const NodePtr& c
         }
 
         // In function good nodes but similar to ones in closedSet are logged
-        // bool logNodes = ds_.logNodes;
-        // ds_.logNodes = true;
+        // bool logNodes = ds_->logNodes;
+        // ds_->logNodes = true;
         // IsNodeInSet(closedSet, tentative_node);
-        // ds_.logNodes = logNodes;
+        // ds_->logNodes = logNodes;
 
         if (!IsNodeInSet(openSet, tentative_node)) {
             tentative_node->SetCosts(vh_data_, goal_);
@@ -387,9 +391,9 @@ bool oal::Generator::IsNodeInSet(const NodeSet& nodes, const NodePtr& node) {
         }
 
         if (isSimilar) {
-            if(ds_.logNodes){
-                node->Log(logNodesFile,"tentative");
-                n->Log(logNodesFile,"pd");
+            if(ds_->freeLogger.log){
+                node->Log(logNodesFreeFile,"tentative");
+                n->Log(logNodesFreeFile,"pd");
             }
             return true;
         }
@@ -439,7 +443,7 @@ void oal::Generator::ReconstructPath(const NodePtr& goal, AstarPath& path_) {
     //FINAL PATH DOES NOT HAVE THE START NODE NOW
     auto node = goal;
     while (node->Parent() != nullptr) {
-        if (ds_.printPath) node->Print();
+        if (ds_->printPath) node->Print();
         path_.Data().push_front(node);
         node = node->Parent();
     }
