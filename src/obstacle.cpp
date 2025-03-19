@@ -1,17 +1,24 @@
 #include "oal/obstacle.hpp"
 
-std::vector<oal::Vx> oal::Obstacle::GetVxs(TimeDouble time, bool compensate_localization_error) const {
+std::vector<oal::Vx> oal::Obstacle::GetVxs(TimeDouble time, bool checkingPathBoundingBox) const {
     /* Get the absolute position of the vertexes at a given time
         * @param time: time instant
         * @param compensate_localization_error: if true, it is checking old path, so reduce the bb size
         * @return: vector of vertexes
     */
     std::vector<oal::Vx> vxs_abs;
-    Pose pose_t(GetPosition(time), initial_pose.Heading());
-    for (Vx vx: vxs) {
+    auto position = GetPosition(time);
+    auto heading = initial_pose.Heading();
+    Pose pose_t(position, heading);
+    for (const Vx& vx : vxs) {
         Vx vx_abs;
         vx_abs.first = vx.first;
-        if(compensate_localization_error) vx.second -= Eigen::Vector2d(bb_data.reductionWhileCheckingPath, bb_data.reductionWhileCheckingPath);
+
+        if (checkingPathBoundingBox) {
+            double reductionX = std::copysign(bb_data.reductionWhileCheckingPath, vx.second.x());
+            double reductionY = std::copysign(bb_data.reductionWhileCheckingPath, vx.second.y());
+            vx_abs.second -= Eigen::Vector2d(reductionX, reductionY);
+        }
         vx_abs.second = pose_t.FromThis2WorldFrame(vx.second);
         vxs_abs.push_back(vx_abs);
     }
@@ -95,12 +102,6 @@ void oal::Obstacle::SetLocalVxs(){
         dim_y_port = bb_dim_y;
     }
 
-    // if (!compensate_localization_error) {
-    //     dim_x_stern -= bb_data.reductionWhileCheckingPath;
-    //     dim_x_bow -= bb_data.reductionWhileCheckingPath;
-    //     dim_y_port -= bb_data.reductionWhileCheckingPath;
-    //     dim_y_starboard -= bb_data.reductionWhileCheckingPath;
-    // }
     // Find the local vertexes position
     vxs.push_back({FR, Eigen::Vector2d(dim_x_bow, -dim_y_starboard)});
     vxs.push_back({FL, Eigen::Vector2d(dim_x_bow, dim_y_port)});

@@ -17,7 +17,7 @@ public:
 
     auto Data() -> std::list<NodePtr>& {return data_;};
 
-    double Length(Eigen::Vector2d position){
+    double Length(Eigen::Vector2d position) const{
         double l;
         for(const auto& wp : data_){
             l += (wp->data.position - position).norm();
@@ -32,6 +32,10 @@ public:
         }
     }
 
+    json LogTrace() const {
+        if(data_.empty()) return json::array();
+        return data_.back()->LogTrace();
+    }
 
 };
 

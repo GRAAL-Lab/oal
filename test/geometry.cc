@@ -24,6 +24,7 @@ bool Test_LinePlaneIntersection(){
 
     // Eigen::Vector3d intersection;
     // return FindLinePlaneIntersection(p1, p2, planePoint, planeNormal.normalized(), intersection);
+    return true;
 }
 
 bool Test_InBB() {

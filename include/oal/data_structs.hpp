@@ -27,6 +27,7 @@ private:
     bool matSet = false;
 
 public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
     Pose() = default;
 
@@ -81,6 +82,14 @@ inline std::string VxIdToString(VxId id){
     if(id == 5) return "NA";
     throw std::runtime_error("Not a valid vx id");
 }
+inline VxId StringToVxId(const std::string& str) {
+    if (str == "FR") return FR;
+    if (str == "FL") return FL;
+    if (str == "RR") return RR;
+    if (str == "RL") return RL;
+    if (str == "NA") return NA;
+    throw std::runtime_error("Invalid string for VxId: " + str);
+}
 
 struct EncounterData{
     // Describes the interception of the ASV with an obstacle vertex
@@ -89,7 +98,7 @@ struct EncounterData{
     
     std::chrono::duration<double> time = std::chrono::duration<double>::zero();
     double approachingSpeed{};
-    std::shared_ptr<Obstacle> obs_ptr = nullptr;
+    std::shared_ptr<Obstacle> obs_ptr = nullptr; //TODO point in space/time can be in more than one bb..
     VxId vx = NA;
 
     //Debug
@@ -104,11 +113,14 @@ struct EncounterData{
 // };
 
 struct PruningParams{
-    bool onlyOnceOnSameVx = true;
+    bool onlyOnceOnSameVx = true; //deprecated
     bool colregsCompliant = false;
     bool stopSearchIfGoalInBB = true; // !! false -> infinite search || path is an aggroviglio around the goal
     double samePositionThreshold = 0.5;
     double sameTimeThreshold = 0.1;
+
+    double timeOut = -1; //sec
+
 };
 
 namespace EncounterTypes {

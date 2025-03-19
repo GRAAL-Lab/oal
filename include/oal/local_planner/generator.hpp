@@ -15,7 +15,7 @@
 
 namespace oal{
 
-struct NodeLogger{
+struct Logger{
     bool log = false;
     std::string dirPath = "NULL";
     std::string fileName = "NULL";
@@ -44,15 +44,19 @@ struct DebugSettings{
     bool printComputedVxs = false;
     bool printNodeEvolutionStats = false;
     bool printPathUnsafetyReason = false;
+    //TODO bool printCollisionReason = false;
 
-    NodeLogger completePath;
-    NodeLogger failedPath;
-    NodeLogger validPath;
-    NodeLogger notValidPath;
+    Logger completePathNodesLog;
+    Logger failedPathNodesLog;
+    Logger validPathNodesLog;
+    Logger notValidPathNodesLog;
+    Logger obstaclesLog;
 
-    NodeLogger freeLogger;
+    Logger freeLogger;
 
-    bool logObstacles = false;
+
+
+    bool logObstacles = true; //TODO
     std::string logObstaclesPathFile = "NULL";
 
     bool printNodesStats = false;
@@ -79,18 +83,20 @@ class Generator
 
     std::vector<oal::NodePtr>::iterator GetBestFromSet(NodeSet& set) const;
 
-    bool IsInBB(TimeDouble time, const Eigen::Vector2d& point, 
-                const std::vector<ObsPtr>& obstacles,
-                std::vector<ObsPtr>& surrounding_obs);
+    
 
     void GetVisibleVxsFromVehicle(const NodePtr& current, const ObsPtr& obstacle, std::vector<Vx>& vxs);
         
         //Eigen::Vector2d vehicle, Eigen::Vector2d obstacle, std::vector<Vx>& vxs);
 
     void PrintNodeStats(const NodeSet& set);
-    void LogObstacles(const std::vector<ObsPtr>& obstacles);
+    void LogObstacles(const std::vector<ObsPtr>& obstacles, std::string description = "");
 
-    bool GetNodesToGoal(const NodePtr& current, const Eigen::Vector2d& goal_, const std::vector<ObsPtr>& obstacles_, NodeSet& successors);
+    bool GetNodesToGoal(
+        const NodePtr& current,
+        const Eigen::Vector2d& goal_,
+        const std::vector<ObsPtr>& obstacles_,
+        NodeSet& successors);
     void GetNodesToObstacles(const NodePtr& current, const std::vector<ObsPtr>& obstacles_, NodeSet& successors);
     NodeSet EvaluateNodes(NodeSet& successors, const NodePtr& current, const Eigen::Vector2d& goal_, const std::vector<ObsPtr>& obstacles_, NodeSet& closedSet, const NodeSet& openSet);
 
@@ -101,13 +107,16 @@ public:
 
     Generator(VehicleData vh_data, PruningParams pruning_params, std::shared_ptr<DebugSettings> ds = nullptr) 
         : vh_data_(vh_data), pruning_params_(pruning_params), ds_(ds) {
+
+            auto TEST = std::max_element(vh_data.velocities.begin(), vh_data.velocities.end());
             
             if(ds_ == nullptr) ds_ = std::make_shared<DebugSettings>();
             //Debug settings
-            ds_->completePath.Init(logNodesCPFile);
-            ds_->failedPath.Init(logNodesFPFile);
-            ds_->validPath.Init(logNodesVPFile);
-            ds_->notValidPath.Init(logNodesNVPFile);
+            ds_->completePathNodesLog.Init(logNodesCPFile);
+            ds_->failedPathNodesLog.Init(logNodesFPFile);
+            ds_->validPathNodesLog.Init(logNodesVPFile);
+            ds_->notValidPathNodesLog.Init(logNodesNVPFile);
+            //ds_->obstaclesLog.Init(logObstaclesFile);
             ds_->freeLogger.Init(logNodesFreeFile);
 
         }
@@ -116,8 +125,11 @@ public:
     
     PathReport FindPath(const Pose& start_, Eigen::Vector2d goal_, const std::vector<ObsPtr>& obstacles_, AstarPath& path_);
 
-    bool IsPathValid(AstarPath path, const Pose& vehicle, const std::vector<ObsPtr>& obstacles_, Eigen::Vector2d &unreachable_wp);
+    bool IsPathValid(AstarPath path, const Pose& vehicle, const std::vector<ObsPtr>& obstacles_, Eigen::Vector2d &unreachable_wp, const ObsPtr& startingObs = nullptr, const VxId& startingVx = NA);
 
+    bool IsInBB(TimeDouble time, const Eigen::Vector2d& point, 
+                const std::vector<ObsPtr>& obstacles,
+                std::vector<ObsPtr>& surrounding_obs);
 };
 
 

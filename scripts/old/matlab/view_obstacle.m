@@ -3,7 +3,7 @@
 clear; clc; close all;
 
 % Specify the file name (it should contain your obstacle data)
-filename = '/home/graal/graal_ws/oal/logs/obstacles.txt';
+filename = '/home/graal/ros2_ws/log/avoidance_logs/obstacles/obstacles.txt';
 
 % Parse the file to obtain an array of obstacle structures
 obstacles = parseObstacleFile(filename);

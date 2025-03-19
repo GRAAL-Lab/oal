@@ -11,13 +11,18 @@ include(GNUInstallDirs)
 # Default to C++17
 #if(NOT CMAKE_CXX_STANDARD)
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 #endif()
 
 #if(NOT CMAKE_BUILD_TYPE)
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE debug)
+    set(CMAKE_BUILD_TYPE debug)#RelWithDebInfo) #
 endif()
 #endif()
+
+find_package(nlohmann_json 3.11.3 REQUIRED)
+find_package(Boost REQUIRED COMPONENTS filesystem system)
 
 # Add files in the tree of "Projects" view in QtCreator
 file(GLOB_RECURSE SOURCE_FILES
@@ -37,6 +42,9 @@ add_library(oal SHARED
         src/obstacle.cpp
         src/geometric_utilities.cpp
         )
+
+        
+target_link_libraries(oal PUBLIC nlohmann_json::nlohmann_json Boost::filesystem Boost::system)
 
 # find dependencies
 # find_package(ament_cmake REQUIRED)
@@ -97,5 +105,15 @@ if (BUILD_TESTS)
         src/geometric_utilities.cpp)
     target_link_libraries(local_planner_test oal)
     add_test(local_planner_test local_planner_test)    
+
+    add_executable(run_from_logs 
+        test/local_planner/runFromLog.cc 
+        src/local_planner/generator.cpp
+        src/local_planner/node.cpp
+        src/obstacle.cpp 
+        src/local_planner/path_evaluator.cpp
+        src/geometric_utilities.cpp)
+    target_link_libraries(run_from_logs oal)
+    add_test(run_from_logs run_from_logs) 
 
 endif (BUILD_TESTS)

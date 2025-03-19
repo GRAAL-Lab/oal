@@ -27,7 +27,7 @@ namespace oal{
 
     public:
 
-        static bool CollisionWithObs(const NodePtr& start, const NodePtr& goal, const ObsPtr& obs, std::vector<Eigen::Vector3d>& collisions, bool colregs = false);
+        static bool CollisionWithObs(const NodePtr& start, const NodePtr& goal, const ObsPtr& obs, std::vector<Eigen::Vector3d>& collisions, bool checkingPath = false, bool colregs = false);
 
         static bool RuleCompliantMotion(const NodePtr& start, NodePtr& goal);
 

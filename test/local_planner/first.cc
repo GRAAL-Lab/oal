@@ -35,7 +35,7 @@ int main() {
     ds->printCurrentNode = false;
     ds->printPath = false;
 
-    ds->completePath.log = true;
+    ds->completePathNodesLog.log = true;
     // NodeLogger failedPath;
     // NodeLogger validPath;
     // NodeLogger notValidPath;
@@ -176,6 +176,7 @@ bool Test_Random(int iterations, bool print){
     int count;
     while(iterations){
         pp.colregsCompliant = !pp.colregsCompliant;
+        
         auto g = Generator(vh_data, pp, ds);
         if(iterations % 100 == 0) std::cerr<<".";
         if(iterations % 10000 == 0) std::cerr<<"\n";
