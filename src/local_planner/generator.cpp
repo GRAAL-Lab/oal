@@ -1,7 +1,8 @@
 #include "oal/local_planner/generator.hpp"
 
-oal::PathReport oal::Generator::FindPath(const Pose& start_, Eigen::Vector2d goal_, const std::vector<ObsPtr>& obstacles_, AstarPath& path_)
+oal::PathReport oal::Generator::FindPath(const Pose& start_, Eigen::Vector2d goal_, const std::vector<ObsPtr>& obstacles_, AstarPath& path_, bool colregs)
 {
+    pruning_params_.colregsCompliant = colregs;
     PathReport response; // search output
     std::shared_ptr<AStarNode> current; // under exploration node
     NodeSet openSet; // Nodes yet to be explored
@@ -28,6 +29,10 @@ oal::PathReport oal::Generator::FindPath(const Pose& start_, Eigen::Vector2d goa
         auto current_it = GetBestFromSet(openSet);
         current = *current_it;
 
+        // if (current->data.vx == RL) {
+        //     std::cerr << "vx: RL\n";
+        // }
+
         // remove aimtogoal first: if(ds_->logNodes) current->Log(logNodesFile);
         if (ds_->printCurrentNode)
             current->Print(" Current");
@@ -47,11 +52,12 @@ oal::PathReport oal::Generator::FindPath(const Pose& start_, Eigen::Vector2d goa
         GetNodesToGoal(current, goal_, obstacles_, nodesToGoal); // True if goal is in bb sometimes and so it found new goal just outside it
         nodesEligible = EvaluateNodes(nodesToGoal, current, goal_, obstacles_, closedSet, openSet);
 
-        if (nodesEligible.empty()) {
-            // Nodes to obstacles
-            GetNodesToObstacles(current, obstacles_, nodesToObstacles);
-            nodesEligible = EvaluateNodes(nodesToObstacles, current, goal_, obstacles_, closedSet, openSet);
-        }
+        // if (nodesEligible.empty()) {
+        //  Nodes to obstacles
+        GetNodesToObstacles(current, obstacles_, nodesToObstacles);
+        auto tempNodeSet = EvaluateNodes(nodesToObstacles, current, goal_, obstacles_, closedSet, openSet);
+        nodesEligible.insert(nodesEligible.end(), tempNodeSet.begin(), tempNodeSet.end());
+        //}
 
         openSet.insert(openSet.end(), nodesEligible.begin(), nodesEligible.end());
         reachableSet.insert(reachableSet.end(), nodesEligible.begin(), nodesEligible.end());
@@ -172,7 +178,7 @@ bool oal::Generator::GetFirstNodes(const Pose& start_, const Eigen::Vector2d& go
     data.discoverySource = NodeSearch::DiscoverySource::START;
     std::shared_ptr<AStarNode> start_node;
     if (surrounding_obs.size() == 1) {
-        std::cerr << "[WARNING] Starting in one bb" << std::endl;
+        // std::cerr << "[WARNING] Starting in one bb" << std::endl;
         auto obs = surrounding_obs[0];
         data.obs_ptr = obs;
         data.vx = NA; // inside obs bb
@@ -238,6 +244,8 @@ bool oal::Generator::GetNodesToGoal(const NodePtr& current, const Eigen::Vector2
         data.approachingSpeed = speed;
         data.position = actual_goal;
         data.time = current->data.time + reachingTime(current->data.position, actual_goal, speed);
+        if (data.time <= current->data.time)
+            throw std::runtime_error("Goal time is <= than start time");
         data.discoverySource = NodeSearch::DiscoverySource::AIM_TO_GOAL;
         std::shared_ptr<AStarNode> goal_node = std::make_shared<AStarNode>(data, current); // just for isInBB routine
 
@@ -248,6 +256,7 @@ bool oal::Generator::GetNodesToGoal(const NodePtr& current, const Eigen::Vector2
                 // if at this time the goal is in bb,
                 // ignore this "node" and keep searching ..
                 continue;
+            std::cerr << "Goal will be in bb after " << data.time.count() << "s" << std::endl;
             // .. otherwise, set a different goal and call it a day
             // Get the closest point to goal which is out of any surrounding bb
             for (const auto& obs : so) {
@@ -272,10 +281,9 @@ bool oal::Generator::GetNodesToGoal(const NodePtr& current, const Eigen::Vector2
         }
 
         std::shared_ptr<AStarNode> actual_goal_node = std::make_shared<AStarNode>(data, current, true);
-        // Setting costs wrt a goal which is actually the node position makes the search finish on this node
-        //  iff it does pass following checks (collisions and colregs)
+
         //  TODO check how colregs are enforced when obs_ptr exists but vx==NA, until now this pair is used only when starting in a bb
-        actual_goal_node->SetCosts(vh_data_, actual_goal);
+        actual_goal_node->SetCosts(vh_data_, goal_);
         successors.push_back(actual_goal_node);
     }
     return newGoalSet;
@@ -310,6 +318,8 @@ void oal::Generator::GetNodesToObstacles(const NodePtr& current, const std::vect
                 for (const auto& point : ip) {
                     e_data.position = point.head(2);
                     e_data.time = current->data.time + std::chrono::duration<double>(point.z());
+                    if (e_data.time <= current->data.time)
+                        throw std::runtime_error("Goal time is <= than start time");
                     e_data.discoverySource = NodeSearch::DiscoverySource::EXPLORATION;
                     std::vector<ObsPtr> so;
                     if (!IsInBB(e_data.time, e_data.position, obstacles_, so)) {
@@ -343,8 +353,6 @@ oal::NodeSet oal::Generator::EvaluateNodes(NodeSet& successors, const NodePtr& c
             closedSet.push_back(tentative_node);
             continue;
         }
-
-        
 
         std::vector<Eigen::Vector3d> collisions;
         if (std::any_of(obstacles_.begin(), obstacles_.end(), [&](const auto& obs) {
@@ -492,7 +500,11 @@ void oal::Generator::ReconstructPath(const NodePtr& goal, AstarPath& path_)
     while (node->Parent() != nullptr) {
         if (ds_->printPath)
             node->Print();
+        if (node->data.time <= node->Parent()->data.time)
+            throw std::runtime_error("Time is not increasing");
         path_.Data().push_front(node);
         node = node->Parent();
     }
+    // Last node inserted is the first waypoint to reach: remove any link to the parent
+    path_.Data().front()->Parent() = nullptr;
 }

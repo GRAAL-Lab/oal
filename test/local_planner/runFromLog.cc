@@ -22,7 +22,7 @@ BoundingBoxData parseBoundingBox(const json& j);
 Vx parseVx(const json& j);
 Obstacle parseObstacle(const json& j);
 void parseSearchStatus(const json& j, Pose& vhPose, Eigen::Vector2d& goal, std::vector<ObsPtr>& obstacles, VehicleData& vhData, PruningParams& pp);
-AStarNode parseNode(const json& j, const std::vector<ObsPtr>& knownObstacles, const NodePtr& parent = nullptr);
+NodePtr parseNode(const json& j, const std::vector<ObsPtr>& knownObstacles, const NodePtr& parent = nullptr);
 void parsePathInfo(const json& j, const std::vector<ObsPtr>& knownObstacles, const Eigen::Vector2d& goal, const VehicleData& vhData, AstarPath& path, std::string& info);
 json parseFromFile(const std::string& avoidanceLogsPath);
 
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
     while (true) {
         if (type == "switch") {
 
-            //dsPtr->printCollisionReason = true;
+            // dsPtr->printCollisionReason = true;
 
             std::cerr << "\n\n---Path old---\n";
             oldPath.Print();
@@ -197,7 +197,7 @@ void parseSearchStatus(const json& j, Pose& vhPose, Eigen::Vector2d& goal, std::
     //  pp.sameTimeThreshold = j["PruningParams"]["SameTimeThreshold"].get<double>();
 }
 
-AStarNode parseNode(const json& j, const std::vector<ObsPtr>& knownObstacles, const NodePtr& parent)
+NodePtr parseNode(const json& j, const std::vector<ObsPtr>& knownObstacles, const NodePtr& parent)
 {
     EncounterData eData;
     eData.position = parseVector(j.at("Position"));
@@ -211,8 +211,7 @@ AStarNode parseNode(const json& j, const std::vector<ObsPtr>& knownObstacles, co
             eData.vx = StringToVxId(j.at("Vx").get<std::string>());
         }
     }
-    AStarNode node(eData, parent);
-    return node;
+    return std::make_shared<AStarNode>(eData, parent);
 }
 
 void parsePathInfo(const json& j, const std::vector<ObsPtr>& knownObstacles, const Eigen::Vector2d& goal, const VehicleData& vhData,
@@ -226,7 +225,7 @@ void parsePathInfo(const json& j, const std::vector<ObsPtr>& knownObstacles, con
     } else {
         NodePtr parent = nullptr;
         for (auto it = j.at("Path").rbegin(); it != j.at("Path").rend(); ++it) {
-            auto node = std::make_shared<AStarNode>(parseNode(*it, knownObstacles, parent));
+            auto node = parseNode(*it, knownObstacles, parent);
             path.Data().push_back(node);
             parent = node;
             parent->SetCosts(vhData, goal);

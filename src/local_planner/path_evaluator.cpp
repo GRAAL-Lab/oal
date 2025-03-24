@@ -101,6 +101,9 @@ bool oal::PathEvaluator::CollisionWithObs(const NodePtr& start, const NodePtr& g
     //         std::cerr << "here\n";
     //     }
 
+    if (goal->data.time <= start->data.time)
+        throw std::runtime_error("Goal time (" + std::to_string(goal->data.time.count()) + ") is <= than start time (" + std::to_string(start->data.time.count()) + ")");
+
     Eigen::Vector2d path = goal->data.position - start->data.position;
 
     auto vxs = obs->GetVxs(start->data.time, checkingPath);
@@ -223,7 +226,7 @@ bool oal::PathEvaluator::CollisionWithObs(const NodePtr& start, const NodePtr& g
 
             if (dot_product <= 0) {
                 // // Print vertex positions
-                  
+
                 // auto PrintVxs = [&vxs]() {
                 //     for (const auto& vx : vxs) {
                 //         std::cerr << "Vx: " << vx.first << " at " << vx.second.transpose() << "\n";
@@ -267,8 +270,22 @@ bool oal::PathEvaluator::CollisionWithObs(const NodePtr& start, const NodePtr& g
         Eigen::Vector3d planeNormal = obs_velocity.cross(get3DVector(vx_idx1) - get3DVector(vx_idx2));
         Eigen::Vector3d cp;
         if (FindLinePlaneIntersection(p1, p2, get3DVector(vx_idx1), planeNormal, cp)) {
-            collisions.push_back(cp);
-            return true;
+            // Get vertexes at time t'
+            auto vx1_pos = get3DVector(vx_idx1);
+            auto vx2_pos = get3DVector(vx_idx2);
+            Eigen::Vector3d vertex1_position = vx1_pos + obs_velocity * cp.z();
+            Eigen::Vector3d vertex2_position = vx2_pos + obs_velocity * cp.z();
+            // Check if point is inside those two vertexes
+            Eigen::Vector3d P1 = cp - vertex1_position;
+            Eigen::Vector3d P2 = cp - vertex2_position;
+
+            // Dot product result
+            double dot_product = P1.dot(P2);
+
+            if (dot_product <= 0) {
+                collisions.push_back(cp);
+                return true;
+            }
         }
     }
 

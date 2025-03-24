@@ -60,7 +60,7 @@ void oal::AStarNode::SetCosts(const VehicleData& vh_data, Eigen::Vector2d goal)
 {
     costToReach = data.time.count();
     Eigen::Vector2d dist_to_goal = goal - data.position;
-    //costToGoal = dist_to_goal.norm() / *std::max_element(std::begin(vh_data.velocities), std::end(vh_data.velocities));
+    // costToGoal = dist_to_goal.norm() / *std::max_element(std::begin(vh_data.velocities), std::end(vh_data.velocities));
 
     if (vh_data.velocities.empty()) {
         // Handle the error: possibly set a default value, log an error, or return early.

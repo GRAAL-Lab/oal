@@ -20,12 +20,12 @@ class AStarNode {
     double costToGoal = -1; // estimated cost to reach Goal
 
 public:
-
+    AStarNode(const AStarNode&) = delete;
+    AStarNode& operator=(const AStarNode&) = delete;
     EncounterData data;
 
     bool isGoal = false;
     bool reached = false;
-    
 
     auto Parent() -> std::shared_ptr<AStarNode>& { return parent_; }
 
@@ -50,13 +50,13 @@ public:
         if (parent_ != nullptr) {
             std::cerr << "Node" << id << ": " << std::endl;
         } else {
-            std::cerr << "(start) Node" << id << ": " << std::endl;
+            std::cerr << "(First) Node" << id << ": " << std::endl;
         }
         std::cerr << "  - Time: " << data.time.count() << "\n  - Pos: " << data.position.transpose() << "\n";
         std::cerr << "  - Heading: " << data.heading << "\n";
-        if (parent_ != nullptr)
-            std::cerr << "  - Reaching speed: " << data.approachingSpeed << "\n";
         
+        std::cerr << "  - Reaching speed: " << data.approachingSpeed << "\n";
+
         if (data.obs_ptr != nullptr) {
             std::cerr << "  - Obs: " << data.obs_ptr->Id() << "/" << VxIdToString(data.vx) << "\n";
         }
