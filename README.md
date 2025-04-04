@@ -59,4 +59,5 @@ and execute the following commands:
 
     $ mkdir build
     $ cd build
-    $ cmake --build ./ --target oal_test -j 6
+    $ cmake ..
+    $ sudo make install
