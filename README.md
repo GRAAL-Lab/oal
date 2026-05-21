@@ -22,30 +22,6 @@ OAL is a C++ obstacle avoidance library focused on generating trajectories towar
   velocities (sometimes slower gets to the goal sooner)
 - ..
 
-# OAL - Obstacle Avoidance Library
-
-The library computes a colregs-compliant trajectory to a goal, avoiding static and moving obstacles.
-
----
-
-## Overview
-
-OAL is a C++ obstacle avoidance library focused on generating trajectories toward a goal while accounting for both static and dynamic obstacles. The project is organized as a reusable library, with tests and plotting/logging utilities that help inspect planner behavior during development.
-
-## Highlights
-
-- Computes colregs-compliant trajectories
-- Supports static and moving obstacles
-- Expands reachable nodes with multiple candidate velocities
-- Ships as a shared C++ library with CMake install/export support
-- Includes tests and debug/logging hooks for inspecting paths and obstacles
-
-## News
-
-- Every reachable node is expanded with a set of (given) different velocities: the result is a trajectory with mixed
-  velocities (sometimes slower gets to the goal sooner)
-- ..
-
 ## Repository layout
 
 ### Core library
