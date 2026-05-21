@@ -22,34 +22,76 @@ OAL is a C++ obstacle avoidance library focused on generating trajectories towar
   velocities (sometimes slower gets to the goal sooner)
 - ..
 
+# OAL - Obstacle Avoidance Library
+
+The library computes a colregs-compliant trajectory to a goal, avoiding static and moving obstacles.
+
+---
+
+## Overview
+
+OAL is a C++ obstacle avoidance library focused on generating trajectories toward a goal while accounting for both static and dynamic obstacles. The project is organized as a reusable library, with tests and plotting/logging utilities that help inspect planner behavior during development.
+
+## Highlights
+
+- Computes colregs-compliant trajectories
+- Supports static and moving obstacles
+- Expands reachable nodes with multiple candidate velocities
+- Ships as a shared C++ library with CMake install/export support
+- Includes tests and debug/logging hooks for inspecting paths and obstacles
+
+## News
+
+- Every reachable node is expanded with a set of (given) different velocities: the result is a trajectory with mixed
+  velocities (sometimes slower gets to the goal sooner)
+- ..
+
 ## Repository layout
 
-### Main files (not up to date)
+### Core library
 
-- DataStructs, groups the definition of the used structures:
-    - VehicleInfo, keeps info such as the position and speed of the vehicle. The struct is meant to be upgradable
-      according to the developments of the library.
-    - ObstacleInfo, list of obstacles. Again, upgradable as needed.
-    - Node, represents a possible waypoint with an estimated cost (time), the obstacle and vertex trace and a pointer to
-      its parent node
-    - Obstacle, has its id, heading, speed, dimension, bounding box info (max and safety bb ration wrt original
-      dimension) and the vertexes position (locally). Also, a function computes the position for a specific time
-      instant, according to speed and heading, and one computes the four vertexes' position with respect to the centre
-      of the obstacle. For the moment I'm keeping the attributes as public to easily access them for the plots (as soon
-      as I reach a definitive version I'll make them private)
-    - Vertex, a vertex (abs frame) position and id wrt to the obstacle. Can also save the point of intercept (where and
-      when) with the vehicle
-- Header Path Planner
-    - path_planner class definition. Public functions are just the constructor (needs the vehicle and obstacles info)
-      and the ComputePath function that makes a stack of waypoints to reach a given goal (if possible).
-- Code Path Planner, the implementations of the main functions:
-    - ComputeInterceptPoints
-    - CheckCollision
-    - ComputePath
-    - UpdateCosts, simply computes the costs according to the vehicle speed. It could easily be a Node function but,
-      since depends on the vehicle speed and on the goal, I'd rather keep it here. Any thoughts?
-    - FindVisibility, given the vehicle and some vxs position, finds which of them are visible from the vehicle itself.
-- Test
+- `include/oal/data_structs.hpp`
+  - Core shared data types used across the library.
+  - Defines `Pose`, `VehicleData`, `EncounterData`, `PruningParams`, `PathReport`, and `BoundingBoxData`.
+  - Also provides shared aliases such as `NodePtr`, `ObsPtr`, `NodeSet`, `TimeDouble`, and obstacle vertex IDs via `VxId`.
+- `include/oal/obstacle.hpp` / `src/obstacle.cpp`
+  - Obstacle model and obstacle geometry utilities.
+  - Stores obstacle identity, class, initial pose, velocity, bounding-box data, and obstacle vertices.
+  - Exposes helpers to query obstacle position over time, retrieve obstacle vertices, and emit debug/log output.
+- `include/oal/geometric_utilities.hpp` / `src/geometric_utilities.cpp`
+  - Shared geometric helpers used by the planner and collision checks.
+- `include/oal/oal_defines.hpp`
+  - Common library-wide defines and constants.
+
+### Local planner
+
+- `include/oal/local_planner/generator.hpp` / `src/local_planner/generator.cpp`
+  - Main planner entry point.
+  - Defines `oal::Generator`, which owns vehicle capabilities, pruning parameters, debug settings, and the search flow.
+  - Public API includes `FindPath(...)`, `IsPathValid(...)`, and `IsInBB(...)`.
+- `include/oal/local_planner/node.hpp` / `src/local_planner/node.cpp`
+  - A* search node representation.
+  - Defines `oal::AStarNode`, which stores encounter data, costs, parent links, goal/reached flags, and trace/debug helpers.
+- `include/oal/local_planner/path.hpp`
+  - Path container returned by the planner.
+  - Defines `oal::AstarPath`, a list-backed wrapper around planner nodes with path length, print, and trace logging helpers.
+- `include/oal/local_planner/path_evaluator.hpp` / `src/local_planner/path_evaluator.cpp`
+  - Path and motion validation utilities.
+  - Provides collision checking and COLREGs-related rule evaluation for candidate motions.
+
+### Tests and developer utilities
+
+- `test/geometry.cc`
+  - Geometry-focused test program.
+- `test/local_planner/first.cc`
+  - Example/local planner test scenario for building obstacles, configuring the generator, and running a search.
+- `test/local_planner/runFromLog.cc`
+  - Replay-oriented planner test that runs scenarios from logged data.
+- `scripts/`
+  - Python and notebook-based utilities for plotting traces, plotting obstacles, and development experimentation.
+  - Includes `obs_functions.py`, `plotTracesWithObs.py`, `plot_functions.py`, `trace_functions.py`, and Jupyter notebooks.
+- `logs/`
+  - Output directory used by debug logging and scenario inspection workflows.
 
 ## Public headers
 
@@ -63,7 +105,17 @@ The library's public interface is exposed from `include/oal`, notably:
 - `oal/local_planner/path.hpp`
 - `oal/local_planner/path_evaluator.hpp`
 
-The main integration entry point appears to be the `oal::Generator` class, which exposes path generation and validation methods.
+
+## Building and installing
+
+The build tool used for this project is CMake. To build and install the project navigate to the root of the cloned repo
+and execute the following commands:
+
+```bash
+mkdir build
+cd build
+cmake ..
+sudo make install
 
 ## Building and installing
 
