@@ -1,96 +1,112 @@
 # OAL - Obstacle Avoidance Library
 
-The library computes a colregs-compliant trajectory to a goal, avoiding static and moving obstacles.
+The library computes COLREGS-compliant trajectories to a goal while avoiding static and moving obstacles.
 
 ---
 
 ## Overview
 
-OAL is a C++ obstacle avoidance library focused on generating trajectories toward a goal while accounting for both static and dynamic obstacles. The project is organized as a reusable library, with tests and plotting/logging utilities that help inspect planner behavior during development.
+OAL is a C++ obstacle avoidance library designed as a reusable shared library. It includes:
+
+- a local planner implementation (`Generator`, path/node/path evaluator logic),
+- geometric and obstacle modeling utilities,
+- test executables used as integration references,
+- plotting/logging helpers for development-time inspection.
 
 ## Highlights
 
-- Computes colregs-compliant trajectories
+- Computes COLREGS-compliant trajectories
 - Supports static and moving obstacles
 - Expands reachable nodes with multiple candidate velocities
-- Ships as a shared C++ library with CMake install/export support
-- Includes tests and debug/logging hooks for inspecting paths and obstacles
+- Exposes a shared C++ library target with CMake install/export support
+- Includes test and debug/logging hooks for inspecting paths and obstacles
 
 ## News
 
-- Every reachable node is expanded with a set of (given) different velocities: the result is a trajectory with mixed
-  velocities (sometimes slower gets to the goal sooner)
+- Every reachable node is expanded with a set of different candidate velocities, producing mixed-velocity trajectories
+  (sometimes a slower segment leads to a faster overall solution)
 - ..
 
 ## Repository layout
 
-### Main files (not up to date)
+The current repository structure is:
 
-- DataStructs, groups the definition of the used structures:
-    - VehicleInfo, keeps info such as the position and speed of the vehicle. The struct is meant to be upgradable
-      according to the developments of the library.
-    - ObstacleInfo, list of obstacles. Again, upgradable as needed.
-    - Node, represents a possible waypoint with an estimated cost (time), the obstacle and vertex trace and a pointer to
-      its parent node
-    - Obstacle, has its id, heading, speed, dimension, bounding box info (max and safety bb ration wrt original
-      dimension) and the vertexes position (locally). Also, a function computes the position for a specific time
-      instant, according to speed and heading, and one computes the four vertexes' position with respect to the centre
-      of the obstacle. For the moment I'm keeping the attributes as public to easily access them for the plots (as soon
-      as I reach a definitive version I'll make them private)
-    - Vertex, a vertex (abs frame) position and id wrt to the obstacle. Can also save the point of intercept (where and
-      when) with the vehicle
-- Header Path Planner
-    - path_planner class definition. Public functions are just the constructor (needs the vehicle and obstacles info)
-      and the ComputePath function that makes a stack of waypoints to reach a given goal (if possible).
-- Code Path Planner, the implementations of the main functions:
-    - ComputeInterceptPoints
-    - CheckCollision
-    - ComputePath
-    - UpdateCosts, simply computes the costs according to the vehicle speed. It could easily be a Node function but,
-      since depends on the vehicle speed and on the goal, I'd rather keep it here. Any thoughts?
-    - FindVisibility, given the vehicle and some vxs position, finds which of them are visible from the vehicle itself.
-- Test
+- `src/` - library implementation sources
+  - `src/local_planner/generator.cpp`: main planner orchestration (`FindPath`, path validity checks, search flow)
+  - `src/local_planner/node.cpp`: node and search-node behavior/cost logic
+  - `src/local_planner/path_evaluator.cpp`: path scoring/evaluation and related heuristics
+  - `src/obstacle.cpp`: obstacle state and obstacle geometry behavior
+  - `src/geometric_utilities.cpp`: geometric helper implementations used by planner and obstacle logic
+
+- `include/oal/` - public C++ headers installed for consumers
+  - `data_structs.hpp`: shared planner/obstacle/configuration data types
+  - `obstacle.hpp`: obstacle model interface
+  - `geometric_utilities.hpp`: geometry API
+  - `oal_defines.hpp`: common definitions/types/macros used by public interfaces
+  - `local_planner/`: public local planner interfaces
+    - `generator.hpp`: main integration entry point (`oal::Generator`)
+    - `node.hpp`, `path.hpp`, `path_evaluator.hpp`: local planner data structures and interfaces
+
+- `test/` - test/integration entry points
+  - `test/geometry.cc`: geometry-focused checks
+  - `test/local_planner/first.cc`: primary local planner integration/random scenario exerciser
+  - `test/local_planner/runFromLog.cc`: replay/debug runner that loads planner state from JSON logs
+
+- `scripts/` - plotting and log analysis utilities
+  - Python helpers for trace/obstacle plotting (for example `plotTracesWithObs.py`, `plot_functions.py`,
+    `trace_functions.py`, `obs_functions.py`)
+  - `scripts/old/`: legacy MATLAB utilities kept for historical/debug usage
+
+- `logs/` - local log output workspace used during development/testing
+  - includes sample/debug artifacts such as `nodes.txt`
+  - additional files (for example obstacle logs) can be generated at runtime by debug settings
 
 ## Public headers
 
-The library's public interface is exposed from `include/oal`, notably:
+The installed public interface is under `include/oal`:
 
 - `oal/data_structs.hpp`
 - `oal/geometric_utilities.hpp`
+- `oal/oal_defines.hpp`
 - `oal/obstacle.hpp`
 - `oal/local_planner/generator.hpp`
 - `oal/local_planner/node.hpp`
 - `oal/local_planner/path.hpp`
 - `oal/local_planner/path_evaluator.hpp`
 
-The main integration entry point appears to be the `oal::Generator` class, which exposes path generation and validation methods.
+The main integration entry point is `oal::Generator`, which exposes path generation and validation methods.
 
 ## Building and installing
 
-The build tool used for this project is CMake. To build and install the project navigate to the root of the cloned repo
-and execute the following commands:
+OAL uses CMake.
 
 ```bash
-mkdir build
-cd build
-cmake ..
-sudo make install
+cmake -S . -B build
+cmake --build build
+cmake --install build
 ```
 
 ### Dependencies
 
-From the build configuration, OAL currently requires:
+From the current build configuration and public headers, OAL requires:
 
 - CMake 3.2+
-- A C++17-compatible compiler
+- a C++17-compatible compiler
 - `nlohmann_json` 3.11.3
 - Boost components: `filesystem`, `system`
+- Eigen headers (`eigen3`) used by public APIs and tests
+
+To configure test targets explicitly:
+
+```bash
+cmake -S . -B build -DBUILD_TESTS=ON
+```
 
 ## Usage
 
 ### 1. Link OAL from CMake
 
-After installing the library, you can integrate it into another CMake project by including the exported package config and linking against `oal`.
+After installing the library, consume the exported package and link against `oal`:
 
 ```cmake
 find_package(oal REQUIRED)
@@ -98,7 +114,7 @@ add_executable(my_app main.cpp)
 target_link_libraries(my_app PRIVATE oal)
 ```
 
-If you are consuming OAL from the source tree instead of an installed location, you can also add it as a subdirectory and link the same target:
+If consuming directly from source, use:
 
 ```cmake
 add_subdirectory(path/to/oal)
@@ -106,9 +122,7 @@ add_executable(my_app main.cpp)
 target_link_libraries(my_app PRIVATE oal)
 ```
 
-### 2. Include the planner headers
-
-A minimal consumer will typically include the generator and obstacle-related headers:
+### 2. Include planner headers
 
 ```cpp
 #include "oal/local_planner/generator.hpp"
@@ -116,16 +130,14 @@ A minimal consumer will typically include the generator and obstacle-related hea
 #include "oal/geometric_utilities.hpp"
 ```
 
-### 3. Build the planner inputs
+### 3. Typical integration flow
 
-From the existing test program, the typical integration flow is:
-
-1. Create `VehicleData` with the vehicle capabilities, including candidate velocities.
-2. Create `PruningParams` to configure exploration behavior.
-3. Optionally create `DebugSettings` to enable logs and planner diagnostics.
-4. Define the vehicle start pose as `Pose` and the target goal as `Eigen::Vector2d`.
-5. Build a `std::vector<ObsPtr>` containing the perceived obstacles.
-6. Create an `oal::Generator` and call `FindPath(...)`.
+1. Create `VehicleData` (including candidate velocities).
+2. Create `PruningParams` for search/pruning behavior.
+3. Optionally create `DebugSettings` for diagnostics/logging.
+4. Define start pose (`Pose`) and goal (`Eigen::Vector2d`).
+5. Build `std::vector<ObsPtr>` with perceived obstacles.
+6. Create `oal::Generator` and call `FindPath(...)`.
 
 ### 4. Minimal integration example
 
@@ -174,29 +186,25 @@ int main() {
 }
 ```
 
-### 5. Use the tests as reference integrations
+### 5. Use tests as reference integrations
 
-The following test programs are useful references when integrating the library:
-
-- `test/local_planner/first.cc`: basic planner setup, random scenarios, and obstacle creation
-- `test/local_planner/runFromLog.cc`: replay-oriented local planner test flow
+- `test/local_planner/first.cc`: planner setup, randomized scenarios, and obstacle creation
+- `test/local_planner/runFromLog.cc`: log replay/debug-oriented local planner flow
 - `test/geometry.cc`: geometry-related checks
-
-These files show how to initialize `VehicleData`, `BoundingBoxData`, `Pose`, debug settings, and obstacle collections in a realistic workflow.
 
 ## Plots
 
-In order to check the correctness of the CheckCollision function, I wrote a script to visualize the bounding boxes and
-the vehicle path. Here an example:
+To inspect collision behavior and trajectory geometry, plotting scripts are provided in `scripts/`.
+Example output:
 ![Figure_1](https://github.com/SamueleD98/oal/assets/28822110/34b667d5-8ca8-4d2a-bca5-49d13a8e3098)
 
 ## Notes
 
-For now, I'm keeping obstacle attributes as public since I need them to be easily accessible for the plots. In the final
-version, I will set them as private.
+For now, obstacle attributes are kept public to simplify plotting/debug inspection. In a more finalized API, these may
+be made private.
 
 ## Current limits
 
-- Vehicle and obstacles speed/heading are considered constants
-- Obstacles heading and speed are equivalent
+- Vehicle and obstacle speed/heading are treated as constants
+- Obstacle heading and speed direction are considered equivalent
 - ..
