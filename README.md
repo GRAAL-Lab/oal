@@ -92,17 +92,6 @@ mkdir build
 cd build
 cmake ..
 sudo make install
-
-## Building and installing
-
-The build tool used for this project is CMake. To build and install the project navigate to the root of the cloned repo
-and execute the following commands:
-
-```bash
-mkdir build
-cd build
-cmake ..
-sudo make install
 ```
 
 ### Dependencies
